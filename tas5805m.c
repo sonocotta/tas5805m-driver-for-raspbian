@@ -36,11 +36,68 @@
 #include <sound/initval.h>
 #include <sound/tlv.h>
 
-//#include "stereo_flow_48kHz_default_coldboot_-10dB.h"
-#include "stereo_flow_48kHz_minimum.h"
+#if defined(TAS5805M_DSP_CUSTOM)
+    // #pragma message("tas5805m_2.0+eq(+9db_20Hz)(-1Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
+    // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-1Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
+    // #pragma message("tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
+    // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
+    #pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
+    #include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
+#else
+
+#if defined(TAS5805M_DSP_STEREO)
+    #pragma message("tas5805m_2.0+basic config is used")
+    #include "startup/tas5805m_2.0+basic.h"
+    #elif defined(TAS5805M_DSP_STEREO_DRC_AGL)
+    #pragma message("tas5805m_2.0+3-band_drc+agl_-12db config is used")
+    #include "startup/tas5805m_2.0+3-band_drc+agl_-12db.h"
+    #elif defined(TAS5805M_DSP_STEREO_DRC)
+    #pragma message("tas5805m_2.0+3-band_drc config is used")
+    #include "startup/tas5805m_2.0+3-band_drc.h"
+    #elif defined(TAS5805M_DSP_STEREO_AGL)
+    #pragma message("tas5805m_2.0+agl_-12db config is used")
+    #include "startup/tas5805m_2.0+agl_-12db.h"
+#elif defined(TAS5805M_DSP_MONO)
+    #pragma message("tas5805m_1.0+basic config is used")
+    #include "startup/tas5805m_1.0+basic.h"
+    #elif defined(TAS5805M_DSP_MONO_DRC_AGL)
+    #pragma message("tas5805m_1.0+3-band_drc+agl_-12db config is used")
+    #include "startup/tas5805m_1.0+3-band_drc+agl_-12db.h"
+    #elif defined(TAS5805M_DSP_MONO_DRC)
+    #pragma message("tas5805m_1.0+3-band_drc config is used")
+    #include "startup/tas5805m_1.0+3-band_drc.h"
+    #elif defined(TAS5805M_DSP_MONO_AGL)
+    #pragma message("tas5805m_1.0+agl_-12db config is used")
+    #include "startup/tas5805m_1.0+agl_-12db.h"
+#elif defined(TAS5805M_DSP_SUBWOOFER_100_AGL)
+    #pragma message("tas5805m_0.1+eq_100Hz_cutoff+drc config is used")
+    #include "startup/tas5805m_0.1+eq_100Hz_cutoff+drc.h" // works: yes // <- purepath (PBTL) subwoofer mode 
+    #elif defined(TAS5805M_DSP_SUBWOOFER_40)
+    #pragma message("tas5805m_0.1+eq_40Hz_cutoff config is used")
+    #include "startup/tas5805m_0.1+eq_40Hz_cutoff.h"
+    #elif defined(TAS5805M_DSP_SUBWOOFER_60)
+    #pragma message("tas5805m_0.1+eq_60Hz_cutoff config is used")
+    #include "startup/tas5805m_0.1+eq_60Hz_cutoff.h"
+    #elif defined(TAS5805M_DSP_SUBWOOFER_100)
+    #pragma message("tas5805m_0.1+eq_100Hz_cutoff config is used")
+    #include "startup/tas5805m_0.1+eq_100Hz_cutoff.h"// works: yes // <- purepath (PBTL) subwoofer mode 
+#elif defined(TAS5805M_DSP_BIAMP)
+    #pragma message("tas5805m_1.1+eq_60Hz_cutoff+mono config is used")
+    #include "startup/tas5805m_1.1+eq_60Hz_cutoff+mono.h"
+    #elif defined(TAS5805M_DSP_BIAMP_60_LEFT)
+    #pragma message("tas5805m_1.1+eq_60Hz_cutoff+left config is used")
+    #include "startup/tas5805m_1.1+eq_60Hz_cutoff+left.h"
+    #elif defined(TAS5805M_DSP_BIAMP_60_RIGHT)
+    #pragma message("tas5805m_1.1+eq_60Hz_cutoff+right config is used") 
+    #include "startup/tas5805m_1.1+eq_60Hz_cutoff+right.h"
+#else
+    #pragma message("tas5805m_2.0+minimal config is used")
+    #include "startup/tas5805m_2.0+minimal.h"        // works: yes // <- purepath minimal
+#endif
+
+#endif
 
 #define IS_KERNEL_MAJOR_BELOW_5 (LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0))
-#define IS_KERNEL_BELOW_6_2 (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
 
 /* Datasheet-defined registers on page 0, book 0 */
 #define REG_PAGE        0x00
@@ -391,7 +448,7 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
     snprintf(filename, sizeof(filename), "tas5805m_dsp_%s.bin",
          config_name);
     ret = request_firmware(&fw, filename, dev);
-    if (ret) {
+    if (ret) {        
         printk(KERN_WARNING "firmware not found, using default config\n");
         goto err;
     }
