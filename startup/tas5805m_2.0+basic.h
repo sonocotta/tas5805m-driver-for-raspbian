@@ -6,9 +6,6 @@
 extern "C" {
 #endif
 
-#define REG_PAGE_SET 0x00
-#define REG_BOOK_SET 0x7f
-
 static const struct reg_sequence tas5805m_init_sequence[] = {
 // RESET
     { REG_PAGE_SET, 0x00 },

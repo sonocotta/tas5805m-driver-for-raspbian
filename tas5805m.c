@@ -48,31 +48,10 @@
 #if defined(TAS5805M_DSP_STEREO)
     #pragma message("tas5805m_2.0+basic config is used")
     #include "startup/tas5805m_2.0+basic.h"
-    #elif defined(TAS5805M_DSP_STEREO_DRC_AGL)
-    #pragma message("tas5805m_2.0+3-band_drc+agl_-12db config is used")
-    #include "startup/tas5805m_2.0+3-band_drc+agl_-12db.h"
-    #elif defined(TAS5805M_DSP_STEREO_DRC)
-    #pragma message("tas5805m_2.0+3-band_drc config is used")
-    #include "startup/tas5805m_2.0+3-band_drc.h"
-    #elif defined(TAS5805M_DSP_STEREO_AGL)
-    #pragma message("tas5805m_2.0+agl_-12db config is used")
-    #include "startup/tas5805m_2.0+agl_-12db.h"
 #elif defined(TAS5805M_DSP_MONO)
     #pragma message("tas5805m_1.0+basic config is used")
     #include "startup/tas5805m_1.0+basic.h"
-    #elif defined(TAS5805M_DSP_MONO_DRC_AGL)
-    #pragma message("tas5805m_1.0+3-band_drc+agl_-12db config is used")
-    #include "startup/tas5805m_1.0+3-band_drc+agl_-12db.h"
-    #elif defined(TAS5805M_DSP_MONO_DRC)
-    #pragma message("tas5805m_1.0+3-band_drc config is used")
-    #include "startup/tas5805m_1.0+3-band_drc.h"
-    #elif defined(TAS5805M_DSP_MONO_AGL)
-    #pragma message("tas5805m_1.0+agl_-12db config is used")
-    #include "startup/tas5805m_1.0+agl_-12db.h"
-#elif defined(TAS5805M_DSP_SUBWOOFER_100_AGL)
-    #pragma message("tas5805m_0.1+eq_100Hz_cutoff+drc config is used")
-    #include "startup/tas5805m_0.1+eq_100Hz_cutoff+drc.h" // works: yes // <- purepath (PBTL) subwoofer mode 
-    #elif defined(TAS5805M_DSP_SUBWOOFER_40)
+#elif defined(TAS5805M_DSP_SUBWOOFER_40)
     #pragma message("tas5805m_0.1+eq_40Hz_cutoff config is used")
     #include "startup/tas5805m_0.1+eq_40Hz_cutoff.h"
     #elif defined(TAS5805M_DSP_SUBWOOFER_60)
@@ -81,7 +60,7 @@
     #elif defined(TAS5805M_DSP_SUBWOOFER_100)
     #pragma message("tas5805m_0.1+eq_100Hz_cutoff config is used")
     #include "startup/tas5805m_0.1+eq_100Hz_cutoff.h"// works: yes // <- purepath (PBTL) subwoofer mode 
-#elif defined(TAS5805M_DSP_BIAMP)
+#elif defined(TAS5805M_DSP_BIAMP_60_MONO)
     #pragma message("tas5805m_1.1+eq_60Hz_cutoff+mono config is used")
     #include "startup/tas5805m_1.1+eq_60Hz_cutoff+mono.h"
     #elif defined(TAS5805M_DSP_BIAMP_60_LEFT)
@@ -92,15 +71,15 @@
     #include "startup/tas5805m_1.1+eq_60Hz_cutoff+right.h"
 #else
     #pragma message("tas5805m_2.0+minimal config is used")
-    #include "startup/tas5805m_2.0+minimal.h"        // works: yes // <- purepath minimal
+    #include "startup/tas5805m_2.0+minimal.h"
 #endif
 
 #endif
 
 #define IS_KERNEL_MAJOR_BELOW_5 (LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0))
+#define IS_KERNEL_BELOW_6_2 (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
 
 /* Datasheet-defined registers on page 0, book 0 */
-#define REG_PAGE        0x00
 #define REG_DEVICE_CTRL_1   0x02
 #define REG_DEVICE_CTRL_2   0x03
 #define REG_SIG_CH_CTRL     0x28
@@ -116,7 +95,6 @@
 #define REG_GLOBAL_FAULT1   0x71
 #define REG_GLOBAL_FAULT2   0x72
 #define REG_FAULT       0x78
-#define REG_BOOK        0x7f
 
 #define TAS5805M_RATES      (SNDRV_PCM_RATE_8000_96000)
 #define TAS5805M_FORMATS    (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
@@ -171,40 +149,45 @@ static void tas5805m_refresh(struct snd_soc_component *component)
 
     printk(KERN_DEBUG "tas5805m_refresh: Refreshing the component\n");
 
-    printk(KERN_DEBUG "\tregmap_write: %#02x %#02x", REG_PAGE, 0x00);
-    ret = regmap_write(rm, REG_PAGE, 0x00);
-    if (ret)
-        printk(KERN_ERR "tas5805m_refresh: regmap_write failed for REG_PAGE: %d\n", ret);
+    ret = regmap_write(rm, REG_PAGE_SET, 0x00);
+    ret = regmap_write(rm, REG_BOOK_SET, 0x00);
 
-    printk(KERN_DEBUG "\tregmap_write: %#02x %#02x", REG_BOOK, 0x00);
-    ret = regmap_write(rm, REG_BOOK, 0x00);
-    if (ret)
-        printk(KERN_ERR "tas5805m_refresh: regmap_write failed for REG_BOOK: %d\n", ret);
-
-    printk(KERN_DEBUG "\tregmap_write: %#02x %#02x", REG_PAGE, 0x00);
-    ret = regmap_write(rm, REG_PAGE, 0x00);
-    if (ret)
-        printk(KERN_ERR "tas5805m_refresh: regmap_write failed for REG_PAGE: %d\n", ret);
-
-    /* Set/clear digital soft-mute */
-    printk(KERN_DEBUG "\tregmap_write: %#02x %#02x", REG_DEVICE_CTRL_2, (tas5805m->is_muted ? DCTRL2_MUTE : 0) |
-        DCTRL2_MODE_PLAY);
-    ret = regmap_write(rm, REG_DEVICE_CTRL_2,
-        (tas5805m->is_muted ? DCTRL2_MUTE : 0) |
-        DCTRL2_MODE_PLAY);
-    if (ret)
-        printk(KERN_ERR "tas5805m_refresh: regmap_write failed for REG_DEVICE_CTRL_2: %d\n", ret);
-
-    printk(KERN_DEBUG "\tregmap_write: %#02x %#02x", REG_FAULT, ANALOG_FAULT_CLEAR);
+    ret = regmap_write(rm, REG_PAGE_SET, 0x00);
+    ret = regmap_write(rm, REG_DEVICE_CTRL_2, (tas5805m->is_muted ? DCTRL2_MUTE : 0) | DCTRL2_MODE_PLAY);
     ret = regmap_write(rm, REG_FAULT, ANALOG_FAULT_CLEAR);    // Is necessary for compatibility with TAS5828m
-    if (ret)
-        printk(KERN_ERR "tas5805m_refresh: regmap_write failed for REG_FAULT: %d\n", ret);
 }
 
 static const SNDRV_CTL_TLVD_DECLARE_DB_SCALE(tas5805m_vol_tlv, -10350, 50, 1);    // New (name, min, step, mute)
+static const SNDRV_CTL_TLVD_DECLARE_DB_SCALE(tas5805m_again_tlv, -1550, 50, 1);    // New (name, min, step, mute)
+
+static const struct soc_enum dac_mode_enum = SOC_ENUM_SINGLE(
+    REG_DEVICE_CTRL_1,   /* Register address where the control resides */
+    2,                   /* Bit shift (bit 1 corresponds to the second bit) */
+    2,                   /* Number of items (2 possible modes: Normal, Bridge) */
+    dac_mode_text        /* Array of text values */
+);
+
+static const struct soc_enum dac_modulation_mode_enum = SOC_ENUM_SINGLE(
+    REG_DEVICE_CTRL_1,   /* Register address where the control resides */
+    0,                   /* Bit shift (bit 1 corresponds to the second bit) */
+    3,                   /* Number of items (2 possible modes: Normal, Bridge) */
+    modulation_mode_text /* Array of text values */
+);
+
+static const struct soc_enum dac_switch_freq_enum = SOC_ENUM_SINGLE(
+    REG_DEVICE_CTRL_1,   /* Register address where the control resides */
+    4,                   /* Bit shift (bit 1 corresponds to the second bit) */
+    2,                   /* Number of items (2 possible modes: Normal, Bridge) */
+    switch_freq_text     /* Array of text values */
+);
 
 static const struct snd_kcontrol_new tas5805m_snd_controls[] = {        // New
-    SOC_SINGLE_TLV ("Master Playback Volume", REG_VOL_CTL, 0, 255, 1, tas5805m_vol_tlv), // (xname, reg, shift, max, invert, tlv_array)
+    SOC_SINGLE_TLV ("Digital Volume", REG_VOL_CTL, 0, 255, 1, tas5805m_vol_tlv), // (xname, reg, shift, max, invert, tlv_array)
+    SOC_SINGLE_TLV ("Analog Gain", REG_AGAIN, 0, 31, 1, tas5805m_again_tlv), // (xname, reg, shift, max, invert, tlv_array)
+
+    SOC_ENUM("Bridge Mode", dac_mode_enum),
+    SOC_ENUM("Modulation Scheme", dac_modulation_mode_enum),
+    SOC_ENUM("Switching freq", dac_switch_freq_enum),
 };
 
 static void send_cfg(struct regmap *rm,
@@ -261,32 +244,13 @@ static void tas5805m_work_handler(struct work_struct *work) {
 
         tas5805m->is_powered = false;
 
-        ret = regmap_write(rm, REG_PAGE, 0x00);
-        if (ret)
-            printk(KERN_ERR "tas5805m_work_handler: regmap_write failed for REG_PAGE: %d\n", ret);
-
-        ret = regmap_write(rm, REG_BOOK, 0x00);
-        if (ret)
-            printk(KERN_ERR "tas5805m_work_handler: regmap_write failed for REG_BOOK: %d\n", ret);
+        ret = regmap_write(rm, REG_PAGE_SET, 0x00);
+        ret = regmap_write(rm, REG_BOOK_SET, 0x00);
 
         ret = regmap_read(rm, REG_CHAN_FAULT, &chan);
-        if (ret)
-            printk(KERN_ERR "tas5805m_work_handler: regmap_read failed for REG_CHAN_FAULT: %d\n", ret);
-
         ret = regmap_read(rm, REG_GLOBAL_FAULT1, &global1);
-        if (ret)
-            printk(KERN_ERR "tas5805m_work_handler: regmap_read failed for REG_GLOBAL_FAULT1: %d\n", ret);
-
         ret = regmap_read(rm, REG_GLOBAL_FAULT2, &global2);
-        if (ret)
-            printk(KERN_ERR "tas5805m_work_handler: regmap_read failed for REG_GLOBAL_FAULT2: %d\n", ret);
-
-        printk(KERN_DEBUG "tas5805m_work_handler: fault regs: CHAN=%02x, GLOBAL1=%02x, GLOBAL2=%02x\n",
-               chan, global1, global2);
-
         ret = regmap_write(rm, REG_DEVICE_CTRL_2, DCTRL2_MODE_PLAY | DCTRL2_MUTE);
-        if (ret)
-            printk(KERN_ERR "tas5805m_work_handler: regmap_write failed for REG_DEVICE_CTRL_2: %d\n", ret);
         break;
 
     default:

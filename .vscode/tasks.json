@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"type": "process",
-			"label": "make all",
+			"label": "build module",
 			"command": "make",
 			"args": [
 				"all"
@@ -11,7 +11,43 @@
 			"problemMatcher": [
 				"$gcc"
 			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "shell",
+			"label": "install module",
+			"command": "sudo make install",
 			"group": "build"
-		}
+		},
+		{
+			"label": "unload driver",
+            "type": "shell",
+            "command": "if [ -e /sys/bus/i2c/drivers/tas5805m ] && [ -e /sys/bus/i2c/drivers/tas5805m/1-002e ]; then echo \"1-002e\" | sudo tee /sys/bus/i2c/drivers/tas5805m/unbind && sudo rmmod tas5805m && sudo rmmod snd_soc_simple_card; else echo \"Nothing to do\"; fi",
+			"group": "build"
+		},
+		{
+			"label": "load driver",
+            "type": "shell",
+            "command": "sudo insmod tas5805m.ko && sudo modprobe snd_soc_simple_card",
+			"group": "build"
+		},
+		{
+			"label": "restart snapclient",
+			"type": "shell",
+			"command": "sudo systemctl restart snapclient",
+			"group": "build"
+		},
+		{
+            "label": "build and reload module",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "build module",
+                "unload driver",
+                "load driver"
+            ]
+        }
 	]
 }
