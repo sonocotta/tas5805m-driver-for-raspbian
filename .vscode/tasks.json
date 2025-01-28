@@ -25,7 +25,7 @@
 		{
 			"label": "unload driver",
             "type": "shell",
-            "command": "if [ -e /sys/bus/i2c/drivers/tas5805m ] && [ -e /sys/bus/i2c/drivers/tas5805m/1-002e ]; then echo \"1-002e\" | sudo tee /sys/bus/i2c/drivers/tas5805m/unbind && sudo rmmod tas5805m && sudo rmmod snd_soc_simple_card; else echo \"Nothing to do\"; fi",
+            "command": "if [ -e /sys/bus/i2c/drivers/tas5805m ] && [ -e /sys/bus/i2c/drivers/tas5805m/1-002e ]; then echo \"1-002e\" | sudo tee /sys/bus/i2c/drivers/tas5805m/unbind else echo \"Nothing to do\"; fi; sudo rmmod tas5805m; sudo rmmod snd_soc_simple_card;",
 			"group": "build"
 		},
 		{
