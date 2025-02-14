@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tas5805m.h"
+#include "../tas5805m.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -8,12 +8,12 @@ extern "C" {
 
 static const struct reg_sequence tas5805m_init_sequence[] = {
 // RESET
-    { REG_PAGE_SET, 0x00 },
-    { REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x00 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
     { 0x03, 0x02 },
     { 0x01, 0x11 },
     { 0x03, 0x02 },
-    { CFG_META_DELAY, 5 },
+    { TAS5805M_CFG_META_DELAY, 5 },
     { 0x03, 0x00 },
     { 0x46, 0x01 },
     { 0x03, 0x02 },
@@ -21,12 +21,12 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x60, 0x01 },
     { 0x7d, 0x11 },
     { 0x7e, 0xff },
-    { REG_PAGE_SET, 0x01 },
+    { TAS5805M_REG_PAGE_SET, 0x01 },
     { 0x51, 0x05 },
-    { REG_PAGE_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x00 },
     { 0x66, 0x86 }, //   EQReg
-    { REG_BOOK_SET, 0x8c },
-    { REG_PAGE_SET, 0x29 },
+    { TAS5805M_REG_BOOK_SET, 0x8c },
+    { TAS5805M_REG_PAGE_SET, 0x29 },
     { 0x18, 0x00 }, //  Input Mixer Left to left = -6 dB
     { 0x19, 0x40 },
     { 0x1a, 0x26 },
@@ -43,7 +43,7 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x25, 0x00 },
     { 0x26, 0x00 },
     { 0x27, 0x00 },
-    { REG_PAGE_SET, 0x2a },
+    { TAS5805M_REG_PAGE_SET, 0x2a },
     { 0x24, 0x00 }, //  Volume Left = 0 dB
     { 0x25, 0x80 },
     { 0x26, 0x00 },
@@ -56,7 +56,7 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x31, 0x71 },
     { 0x32, 0x94 },
     { 0x33, 0x9a },
-    { REG_PAGE_SET, 0x2c },
+    { TAS5805M_REG_PAGE_SET, 0x2c },
     { 0x0c, 0x00 }, //  Left Input to Left Level Meter = -110 dB
     { 0x0d, 0x00 },
     { 0x0e, 0x00 },
@@ -105,7 +105,7 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x4d, 0x00 },
     { 0x4e, 0x00 },
     { 0x4f, 0x00 },
-    { REG_PAGE_SET, 0x2d },
+    { TAS5805M_REG_PAGE_SET, 0x2d },
     { 0x1c, 0x00 }, //  Level Meter Time Constant = 1000 ms
     { 0x1d, 0x00 },
     { 0x1e, 0x57 },
@@ -127,9 +127,9 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x2e, 0x00 },
     { 0x2f, 0x00 },
 // Book 0xaa
-    { REG_PAGE_SET, 0x00 },
-    { REG_BOOK_SET, 0xaa },
-    { REG_PAGE_SET, 0x24 },
+    { TAS5805M_REG_PAGE_SET, 0x00 },
+    { TAS5805M_REG_BOOK_SET, 0xaa },
+    { TAS5805M_REG_PAGE_SET, 0x24 },
     { 0x18, 0x00 }, //  Biquad -  BQ1 Left   -     Filter: Low Pass-ButterWorth 2  Frequency: 100 Hz  Gain: 1dB  QVal: 0.71  Bandwidth: 1000 Hz
     { 0x19, 0x00 },
     { 0x1a, 0x06 },
@@ -233,8 +233,8 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x7c, 0x08 }, //  Biquad -  BQ6 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
     { 0x7d, 0x00 },
     { 0x7e, 0x00 },
-    { REG_BOOK_SET, 0x00 },
-    { REG_PAGE_SET, 0x25 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x25 },
     { 0x08, 0x00 },
     { 0x09, 0x00 },
     { 0x0a, 0x00 },
@@ -354,8 +354,8 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x7c, 0x08 }, //  Biquad -  BQ12 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
     { 0x7d, 0x00 },
     { 0x7e, 0x00 },
-    { REG_BOOK_SET, 0x00 },
-    { REG_PAGE_SET, 0x26 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x26 },
     { 0x08, 0x00 },
     { 0x09, 0x00 },
     { 0x0a, 0x00 },
@@ -475,8 +475,8 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x7c, 0x08 }, //  Biquad -  BQ3 Right   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
     { 0x7d, 0x00 },
     { 0x7e, 0x00 },
-    { REG_BOOK_SET, 0x00 },
-    { REG_PAGE_SET, 0x27 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x27 },
     { 0x08, 0x00 },
     { 0x09, 0x00 },
     { 0x0a, 0x00 },
@@ -596,8 +596,8 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x7c, 0x08 }, //  Biquad -  BQ9 Right   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
     { 0x7d, 0x00 },
     { 0x7e, 0x00 },
-    { REG_BOOK_SET, 0x00 },
-    { REG_PAGE_SET, 0x28 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x28 },
     { 0x08, 0x00 },
     { 0x09, 0x00 },
     { 0x0a, 0x00 },
@@ -717,8 +717,8 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x7c, 0x08 }, //  Biquad -  BQ15 Right   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
     { 0x7d, 0x00 },
     { 0x7e, 0x00 },
-    { REG_BOOK_SET, 0x00 },
-    { REG_PAGE_SET, 0x29 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x29 },
     { 0x08, 0x00 },
     { 0x09, 0x00 },
     { 0x0a, 0x00 },
@@ -736,8 +736,8 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x16, 0x00 },
     { 0x17, 0x00 },
 //Register Tuning
-    { REG_PAGE_SET, 0x00 },
-    { REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x00 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
     { 0x02, 0x04 },
     { 0x30, 0x00 },
     { 0x4c, 0x30 },

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tas5805m.h"
+#include "../tas5805m.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -8,12 +8,12 @@ extern "C" {
 
 static const struct reg_sequence tas5805m_init_sequence[] = {
 // RESET
-    { REG_PAGE_SET, 0x00 },
-    { REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x00 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
     { 0x03, 0x02 },
     { 0x01, 0x11 },
     { 0x03, 0x02 },
-    { CFG_META_DELAY, 10 },
+    { TAS5805M_CFG_META_DELAY, 10 },
     { 0x03, 0x00 },
     { 0x46, 0x01 },
     { 0x03, 0x02 },
@@ -21,11 +21,11 @@ static const struct reg_sequence tas5805m_init_sequence[] = {
     { 0x60, 0x01 },
     { 0x7d, 0x11 },
     { 0x7e, 0xff },
-    { REG_PAGE_SET, 0x01 },
+    { TAS5805M_REG_PAGE_SET, 0x01 },
     { 0x51, 0x05 },
 // Register Tuning
-    { REG_PAGE_SET, 0x00 },
-    { REG_BOOK_SET, 0x00 },
+    { TAS5805M_REG_PAGE_SET, 0x00 },
+    { TAS5805M_REG_BOOK_SET, 0x00 },
     { 0x02, 0x00 },
     { 0x30, 0x00 },
     { 0x4c, 0x30 },

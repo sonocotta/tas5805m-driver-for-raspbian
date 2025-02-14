@@ -12,7 +12,7 @@
 //    https://e2e.ti.com/support/audio-group/audio/f/audio-forum/722027/linux-tas5825m-linux-drivers
 //
 // It has been simplified a little and reworked for the 5.x ALSA SoC API.
-// Silicon available to me has a functional REG_VOL_CTL (0x4c), so the original dsp workaround is not necessary.
+// Silicon available to me has a functional TAS5805M_REG_VOL_CTL (0x4c), so the original dsp workaround is not necessary.
 // This driver works with a binary firmware file. When missing or invalid a minimal config for PVDD=24V is used.
 
 #include <linux/module.h>
@@ -48,6 +48,8 @@ static void map_db_to_9_23(int db_value, u8 buffer[4]);
     #pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
     #include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
 #else
+
+#include "eq/tas5805m_eq.h"
 
 #if defined(TAS5805M_DSP_STEREO)
     #pragma message("tas5805m_2.0+basic config is used")
@@ -92,16 +94,16 @@ static void map_db_to_9_23(int db_value, u8 buffer[4]);
  * Sending 0x11 to DCTL2 resets the volume setting, so we send 0x01.
  */
 static const u8 dsp_cfg_preboot[] = {
-    REG_PAGE_SET, 0x00, 
-    REG_BOOK_SET, 0x00, 
+    TAS5805M_REG_PAGE_SET, 0x00, 
+    TAS5805M_REG_BOOK_SET, 0x00, 
     0x03, 0x02, 
-    0x01, 0x10,   // reset DSP & write DCTRL2_MODE_HIZ to DCTL2, keeps TLDV setting
+    0x01, 0x10,   // reset DSP & write TAS5805M_DCTRL2_MODE_HIZ to DCTL2, keeps TLDV setting
     0x00, 0x00, 
     0x00, 0x00, 
     0x00, 0x00, 
     0x00, 0x00,
-    REG_PAGE_SET, 0x00, 
-    REG_BOOK_SET, 0x00, 
+    TAS5805M_REG_PAGE_SET, 0x00, 
+    TAS5805M_REG_BOOK_SET, 0x00, 
     0x03, 0x02,
 };
 
@@ -132,33 +134,41 @@ static void tas5805m_refresh(struct snd_soc_component *component)
 
     printk(KERN_DEBUG "tas5805m_refresh: Refreshing the component\n");
 
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);
-    ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_CONTROL_PORT);
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);
+    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
+    ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, TAS5805M_REG_BOOK_CONTROL_PORT);
+    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
 
-    ret = regmap_write(rm, REG_DEVICE_CTRL_2, (tas5805m->is_muted ? DCTRL2_MUTE : 0) | DCTRL2_MODE_PLAY);
-    ret = regmap_write(rm, REG_FAULT, ANALOG_FAULT_CLEAR);    // Is necessary for compatibility with TAS5828m
+    ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, (tas5805m->is_muted ? TAS5805M_DCTRL2_MUTE : 0) | TAS5805M_DCTRL2_MODE_PLAY);
+    ret = regmap_write(rm, TAS5805M_REG_FAULT, TAS5805M_ANALOG_FAULT_CLEAR);    // Is necessary for compatibility with TAS5828m
 }
 
 static const SNDRV_CTL_TLVD_DECLARE_DB_SCALE(tas5805m_vol_tlv, -10350, 50, 1);    // New (name, min, step, mute)
 static const SNDRV_CTL_TLVD_DECLARE_DB_SCALE(tas5805m_again_tlv, -1550, 50, 1);    // New (name, min, step, mute)
 
 static const struct soc_enum dac_mode_enum = SOC_ENUM_SINGLE(
-    REG_DEVICE_CTRL_1,   /* Register address where the control resides */
+    TAS5805M_REG_DEVICE_CTRL_1,   /* Register address where the control resides */
     2,                   /* Bit shift (bit 1 corresponds to the second bit) */
     2,                   /* Number of items (2 possible modes: Normal, Bridge) */
     dac_mode_text        /* Array of text values */
 );
 
+static const struct soc_enum eq_mode_enum = SOC_ENUM_SINGLE(
+    TAS5805M_REG_DSP_MISC,   /* Register address where the control resides */
+    0,                       /* Bit shift (bit 1 corresponds to the second bit) */
+    2,                       /* Number of items (2 possible modes: Off, On) */
+    eq_mode_text            /* Array of text values */
+);
+
+
 static const struct soc_enum dac_modulation_mode_enum = SOC_ENUM_SINGLE(
-    REG_DEVICE_CTRL_1,   /* Register address where the control resides */
+    TAS5805M_REG_DEVICE_CTRL_1,   /* Register address where the control resides */
     0,                   /* Bit shift (bit 1 corresponds to the second bit) */
     3,                   /* Number of items (2 possible modes: Normal, Bridge) */
     modulation_mode_text /* Array of text values */
 );
 
 static const struct soc_enum dac_switch_freq_enum = SOC_ENUM_SINGLE(
-    REG_DEVICE_CTRL_1,   /* Register address where the control resides */
+    TAS5805M_REG_DEVICE_CTRL_1,   /* Register address where the control resides */
     4,                   /* Bit shift (bit 1 corresponds to the second bit) */
     2,                   /* Number of items (2 possible modes: Normal, Bridge) */
     switch_freq_text     /* Array of text values */
@@ -200,25 +210,25 @@ static int dac_level_meter_get(struct snd_kcontrol *kcontrol,
         return -EINVAL;
     }
 
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);
+    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
     if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write REG_PAGE_SET: %d\n", ret);
+        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_PAGE_SET: %d\n", ret);
         return ret;
     }
 
-    ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_LEVEL_METER);
+    ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, REG_BOOK_LEVEL_METER);
     if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write REG_BOOK_SET: %d\n", ret);
+        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_BOOK_SET: %d\n", ret);
         return ret;
     }
 
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_LEVEL_METER);
+    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, REG_PAGE_LEVEL_METER);
     if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write REG_PAGE_SET: %d\n", ret);
+        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_PAGE_SET: %d\n", ret);
         return ret;
     }
 
-    ret = regmap_bulk_read(rm, REG_LEVEL_METER_LEFT, buf, 4);
+    ret = regmap_bulk_read(rm, TAS5805M_REG_LEVEL_METER_LEFT, buf, 4);
     if (ret < 0) {
         printk(KERN_ERR "tas5805m: Failed to read level meter: %d\n", ret);
         return ret;
@@ -226,15 +236,15 @@ static int dac_level_meter_get(struct snd_kcontrol *kcontrol,
         level = map_1_31_to_db(buf);
     }
 
-    ret = regmap_write(rm, REG_LEVEL_METER_LEFT, REG_PAGE_ZERO);
+    ret = regmap_write(rm, TAS5805M_REG_LEVEL_METER_LEFT, TAS5805M_REG_PAGE_ZERO);
     if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write REG_LEVEL_METER_LEFT: %d\n", ret);
+        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_LEVEL_METER_LEFT: %d\n", ret);
         return ret;
     }
 
-    ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_CONTROL_PORT);
+    ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, TAS5805M_REG_BOOK_CONTROL_PORT);
     if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write REG_BOOK_SET: %d\n", ret);
+        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_BOOK_SET: %d\n", ret);
         return ret;
     }
 
@@ -251,6 +261,16 @@ static const struct snd_kcontrol_new dac_level_meter_control = {
 };
 */
 
+#define SET_BOOK_AND_PAGE(rm, BOOK, PAGE) \
+    do { \
+        regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO); \
+        printk(KERN_DEBUG "@page: %#x\n", TAS5805M_REG_PAGE_ZERO); \
+        regmap_write(rm, TAS5805M_REG_BOOK_SET, BOOK); \
+        printk(KERN_DEBUG "@book: %#x\n", BOOK); \
+        regmap_write(rm, TAS5805M_REG_PAGE_SET, PAGE); \
+        printk(KERN_DEBUG "@page: %#x\n", PAGE); \
+    } while (0)
+    
 // Macro to define ALSA controls for meters
 #define MIXER_CONTROL_DECL(alias, reg, control_name)                      \
 static int alias##_get(struct snd_kcontrol *kcontrol,                     \
@@ -261,12 +281,7 @@ static int alias##_get(struct snd_kcontrol *kcontrol,                     \
     int ret;                                                              \
     u8 buf[4] = {0};                                                      \
     int level = 0;                                                        \
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);                  \
-    printk(KERN_DEBUG "set page: %#x\n", REG_PAGE_ZERO);                  \
-    ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_5);                     \
-    printk(KERN_DEBUG "set book: %#x\n", REG_BOOK_5);                     \
-    ret = regmap_write(rm, REG_PAGE_SET, REG_BOOK_5_MIXER_PAGE);          \
-    printk(KERN_DEBUG "set page: %#x\n", REG_BOOK_5_MIXER_PAGE);          \
+    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_5, TAS5805M_REG_BOOK_5_MIXER_PAGE); \
     ret = regmap_bulk_read(rm, reg, buf, 4);                              \
     printk(KERN_DEBUG "read register %#x\n", reg);                        \
     if (ret != 0) {                                                       \
@@ -278,10 +293,7 @@ static int alias##_get(struct snd_kcontrol *kcontrol,                     \
         printk(KERN_DEBUG "\t which is %d", level);                       \
     }                                                                     \
     ucontrol->value.integer.value[0] = level;                             \
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);                  \
-    printk(KERN_DEBUG "set page: %#x\n", REG_PAGE_ZERO);                  \
-    ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_CONTROL_PORT);          \
-    printk(KERN_DEBUG "set book: %#x\n", REG_BOOK_CONTROL_PORT);          \
+    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO); \
     return 0;                                                             \
 }                                                                         \
                                                                           \
@@ -294,12 +306,7 @@ static int alias##_set(struct snd_kcontrol *kcontrol,                     \
     u8 buf[4] = {0};                                                      \
     int value = ucontrol->value.integer.value[0];                         \
     map_db_to_9_23(value, buf);                                           \
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);                  \
-    printk(KERN_DEBUG "set page: %#x\n", REG_PAGE_ZERO);                  \
-    ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_5);                     \
-    printk(KERN_DEBUG "set book: %#x\n", REG_BOOK_5);                     \
-    ret = regmap_write(rm, REG_PAGE_SET, REG_BOOK_5_MIXER_PAGE);          \
-    printk(KERN_DEBUG "set page: %#x\n", REG_BOOK_5_MIXER_PAGE);          \
+    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_5, TAS5805M_REG_BOOK_5_MIXER_PAGE); \
     ret = regmap_bulk_write(rm, reg, buf, 4);                             \
     printk(KERN_DEBUG "write register %#x: %#x %#x %#x %#x\n", reg, buf[0], buf[1], buf[2], buf[3]); \
     if (ret != 0) {                                                       \
@@ -307,10 +314,7 @@ static int alias##_set(struct snd_kcontrol *kcontrol,                     \
         return ret;                                                       \
     }                                                                     \
     printk(KERN_DEBUG "\t which is %d", value);                           \
-    ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);                  \
-    printk(KERN_DEBUG "set page: %#x\n", REG_PAGE_ZERO);                  \
-    ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_CONTROL_PORT);          \
-    printk(KERN_DEBUG "set book: %#x\n", REG_BOOK_CONTROL_PORT);          \
+    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO); \
     return 0;                                                             \
 }                                                                         \
                                                                           \
@@ -333,18 +337,106 @@ static const struct snd_kcontrol_new alias##_control = {                  \
     .put = alias##_set,                                                   \
 };                                                                        \
 
-MIXER_CONTROL_DECL(left_to_left_mixer, REG_LEFT_TO_LEFT_GAIN, "L-L Mixer Gain");
-MIXER_CONTROL_DECL(right_to_left_mixer, REG_RIGHT_TO_LEFT_GAIN, "R-L Mixer Gain");
-MIXER_CONTROL_DECL(left_to_right_mixer, REG_LEFT_TO_RIGHT_GAIN, "L-R Mixer Gain");
-MIXER_CONTROL_DECL(right_to_right_mixer, REG_RIGHT_TO_RIGHT_GAIN, "R-R Mixer Gain");
+// Mixer controls
+MIXER_CONTROL_DECL(left_to_left_mixer, TAS5805M_REG_LEFT_TO_LEFT_GAIN, "L-L Mixer Gain");
+MIXER_CONTROL_DECL(right_to_left_mixer, TAS5805M_REG_RIGHT_TO_LEFT_GAIN, "R-L Mixer Gain");
+MIXER_CONTROL_DECL(left_to_right_mixer, TAS5805M_REG_LEFT_TO_RIGHT_GAIN, "L-R Mixer Gain");
+MIXER_CONTROL_DECL(right_to_right_mixer, TAS5805M_REG_RIGHT_TO_RIGHT_GAIN, "R-R Mixer Gain");
+
+
+// Macro to define ALSA controls for EQ bands
+#define DEFINE_EQ_BAND_CONTROL(IX, FREQ) \
+static int eq_band_##FREQ##_get(struct snd_kcontrol *kcontrol,              \
+                      struct snd_ctl_elem_value *ucontrol) {                \
+    ucontrol->value.integer.value[0] = kcontrol->private_value;             \
+    return 0;                                                               \
+}                                                                           \
+                                                                            \
+static int eq_band_##FREQ##_set(struct snd_kcontrol *kcontrol,              \
+                      struct snd_ctl_elem_value *ucontrol) {                \
+    struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);      \
+    struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component); \
+    struct regmap *rm = tas5805m->regmap;                                   \
+    int FREQ_INDEX = IX;                                                    \
+    int value = ucontrol->value.integer.value[0];                           \
+    int current_page = 0;                                                   \
+    printk(KERN_DEBUG "EQ set: %d\n", value);                               \
+                                                                            \
+    if (value < TAS5805M_EQ_MIN_DB || value > TAS5805M_EQ_MAX_DB)           \
+        return -EINVAL;                                                     \
+                                                                            \
+    if (kcontrol->private_value != value) {                                 \
+        kcontrol->private_value = value;                                    \
+                                                                            \
+        int x = value + TAS5805M_EQ_MAX_DB;                                 \
+        int y = FREQ_INDEX * TAS5805M_EQ_KOEF_PER_BAND * TAS5805M_EQ_REG_PER_KOEF; \
+        printk(KERN_DEBUG "x = %d, y = %d", x, y);                          \
+                                                                            \
+        for (int i = 0; i < TAS5805M_EQ_KOEF_PER_BAND * TAS5805M_EQ_REG_PER_KOEF; i++) { \
+            const reg_sequence_eq *reg_value = &tas5805m_eq_registers[x][y + i]; \
+            if (reg_value == NULL) {                                        \
+                printk(KERN_ERR "NULL pointer encountered at row[%d]\n", y + i); \
+                continue;                                                   \
+            }                                                               \
+                                                                            \
+            if (reg_value->page != current_page) {                          \
+                current_page = reg_value->page;                             \
+                SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_EQ, reg_value->page); \
+            }                                                               \
+                                                                            \
+            printk(KERN_DEBUG "+ %d: w 0x%x 0x%x\n", i, reg_value->offset, reg_value->value); \
+            regmap_write(rm, reg_value->offset, reg_value->value);          \
+        }                                                                   \
+                                                                            \
+        SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO); \
+        return 1;                                                           \
+    }                                                                       \
+    return 0;                                                               \
+}                                                                           \
+                                                                            \
+static int eq_band_##FREQ##_info(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_info *uinfo) { \
+    uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;                              \
+    uinfo->count = 1;                                                       \
+    uinfo->value.integer.min = TAS5805M_EQ_MIN_DB;                          \
+    uinfo->value.integer.max = TAS5805M_EQ_MAX_DB;                          \
+    return 0;                                                               \
+}                                                                           \
+                                                                            \
+static const struct snd_kcontrol_new eq_band_##FREQ##_control = {           \
+    .iface = SNDRV_CTL_ELEM_IFACE_MIXER,                                    \
+    .name = #FREQ " Hz",                                                    \
+    .access = SNDRV_CTL_ELEM_ACCESS_READWRITE,                              \
+    .info = eq_band_##FREQ##_info,                                          \
+    .get = eq_band_##FREQ##_get,                                            \
+    .put = eq_band_##FREQ##_set,                                            \
+    .private_value = 0                                                      \
+};
+
+// EQ controls
+DEFINE_EQ_BAND_CONTROL(0,  00020)
+DEFINE_EQ_BAND_CONTROL(1,  00032)
+DEFINE_EQ_BAND_CONTROL(2,  00050)
+DEFINE_EQ_BAND_CONTROL(3,  00080)
+DEFINE_EQ_BAND_CONTROL(4,  00125)
+DEFINE_EQ_BAND_CONTROL(5,  00200)
+DEFINE_EQ_BAND_CONTROL(6,  00315)
+DEFINE_EQ_BAND_CONTROL(7,  00500)
+DEFINE_EQ_BAND_CONTROL(8,  00800)
+DEFINE_EQ_BAND_CONTROL(9,  01250)
+DEFINE_EQ_BAND_CONTROL(10, 02000)
+DEFINE_EQ_BAND_CONTROL(11, 03150)
+DEFINE_EQ_BAND_CONTROL(12, 05000)
+DEFINE_EQ_BAND_CONTROL(13, 08000)
+DEFINE_EQ_BAND_CONTROL(14, 16000)
 
 static const struct snd_kcontrol_new tas5805m_snd_controls[] = {        // New
-    SOC_SINGLE_TLV ("Digital Volume", REG_VOL_CTL, 0, 255, 1, tas5805m_vol_tlv), // (xname, reg, shift, max, invert, tlv_array)
-    SOC_SINGLE_TLV ("Analog Gain", REG_AGAIN, 0, 31, 1, tas5805m_again_tlv), // (xname, reg, shift, max, invert, tlv_array)
+    SOC_SINGLE_TLV ("Digital Volume", TAS5805M_REG_VOL_CTL, 0, 255, 1, tas5805m_vol_tlv), // (xname, reg, shift, max, invert, tlv_array)
+    SOC_SINGLE_TLV ("Analog Gain", TAS5805M_REG_ANALOG_GAIN, 0, 31, 1, tas5805m_again_tlv), // (xname, reg, shift, max, invert, tlv_array)
 
     SOC_ENUM("Bridge Mode", dac_mode_enum),
     SOC_ENUM("Modulation Scheme", dac_modulation_mode_enum),
     SOC_ENUM("Switching freq", dac_switch_freq_enum),
+    SOC_ENUM("Equalizer", eq_mode_enum),
  
     // channel mixer controls
     left_to_left_mixer_control,
@@ -352,6 +444,21 @@ static const struct snd_kcontrol_new tas5805m_snd_controls[] = {        // New
     left_to_right_mixer_control,
     right_to_right_mixer_control,
 
+    eq_band_00020_control,
+    eq_band_00032_control,
+    eq_band_00050_control,
+    eq_band_00080_control,
+    eq_band_00125_control,
+    eq_band_00200_control,
+    eq_band_00315_control,
+    eq_band_00500_control,
+    eq_band_00800_control,
+    eq_band_01250_control,
+    eq_band_02000_control,
+    eq_band_03150_control,
+    eq_band_05000_control,
+    eq_band_08000_control,
+    eq_band_16000_control,
 };
 
 static void send_cfg(struct regmap *rm,
@@ -414,13 +521,13 @@ static void tas5805m_work_handler(struct work_struct *work)
 
         tas5805m->is_powered = false;
 
-        ret = regmap_write(rm, REG_PAGE_SET, REG_PAGE_ZERO);
-        ret = regmap_write(rm, REG_BOOK_SET, REG_BOOK_CONTROL_PORT);
+        ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
+        ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, TAS5805M_REG_BOOK_CONTROL_PORT);
 
-        ret = regmap_read(rm, REG_CHAN_FAULT, &chan);
-        ret = regmap_read(rm, REG_GLOBAL_FAULT1, &global1);
-        ret = regmap_read(rm, REG_GLOBAL_FAULT2, &global2);
-        ret = regmap_write(rm, REG_DEVICE_CTRL_2, DCTRL2_MODE_PLAY | DCTRL2_MUTE);
+        ret = regmap_read(rm, TAS5805M_REG_CHAN_FAULT, &chan);
+        ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT1, &global1);
+        ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT2, &global2);
+        ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MODE_PLAY | TAS5805M_DCTRL2_MUTE);
         break;
 
     default:
