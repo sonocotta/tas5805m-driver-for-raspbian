@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "compare": "c"
+        "compare": "c",
+        "tas5805m_0.1+eq_40hz_cutoff.h": "c"
     }
 }

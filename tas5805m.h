@@ -51,6 +51,9 @@
 #define TAS5805M_REG_LEFT_TO_RIGHT_GAIN 0x20
 #define TAS5805M_REG_RIGHT_TO_RIGHT_GAIN 0x24
 
+#define TAS5805M_MIXER_MIN_DB -110
+#define TAS5805M_MIXER_MAX_DB 15
+
 enum {
     NORMAL_MODE = 0,  /* Normal mode (bit 1 = 0) */
     BRIDGE_MODE = 1   /* Bridge mode (bit 1 = 1) */

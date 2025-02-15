@@ -36,50 +36,39 @@
 #include <sound/initval.h>
 #include <sound/tlv.h>
 
-// static int map_1_31_to_db(const u8 buffer[4]);
-static int map_9_23_to_db(const u8 buffer[4]);
+#include "eq/tas5805m_eq.h"
+
 static void map_db_to_9_23(int db_value, u8 buffer[4]);
 
 #if defined(TAS5805M_DSP_CUSTOM)
+    // pick one of the following configurations 
+    // you may provide your own configuration exported from the Ti's PurePath Console
+    // DSP ALSA controls will be disabled in that case
+
     // #pragma message("tas5805m_2.0+eq(+9db_20Hz)(-1Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
     // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-1Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
     // #pragma message("tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
     // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
-    #pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
-    #include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
-#else
-
-#include "eq/tas5805m_eq.h"
-
-#if defined(TAS5805M_DSP_STEREO)
+    // #pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
+    // #include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
     #pragma message("tas5805m_2.0+basic config is used")
     #include "startup/tas5805m_2.0+basic.h"
-#elif defined(TAS5805M_DSP_MONO)
-    #pragma message("tas5805m_1.0+basic config is used")
-    #include "startup/tas5805m_1.0+basic.h"
-#elif defined(TAS5805M_DSP_SUBWOOFER_40)
-    #pragma message("tas5805m_0.1+eq_40Hz_cutoff config is used")
-    #include "startup/tas5805m_0.1+eq_40Hz_cutoff.h"
-    #elif defined(TAS5805M_DSP_SUBWOOFER_60)
-    #pragma message("tas5805m_0.1+eq_60Hz_cutoff config is used")
-    #include "startup/tas5805m_0.1+eq_60Hz_cutoff.h"
-    #elif defined(TAS5805M_DSP_SUBWOOFER_100)
-    #pragma message("tas5805m_0.1+eq_100Hz_cutoff config is used")
-    #include "startup/tas5805m_0.1+eq_100Hz_cutoff.h"// works: yes // <- purepath (PBTL) subwoofer mode 
-#elif defined(TAS5805M_DSP_BIAMP_60_MONO)
-    #pragma message("tas5805m_1.1+eq_60Hz_cutoff+mono config is used")
-    #include "startup/tas5805m_1.1+eq_60Hz_cutoff+mono.h"
-    #elif defined(TAS5805M_DSP_BIAMP_60_LEFT)
-    #pragma message("tas5805m_1.1+eq_60Hz_cutoff+left config is used")
-    #include "startup/tas5805m_1.1+eq_60Hz_cutoff+left.h"
-    #elif defined(TAS5805M_DSP_BIAMP_60_RIGHT)
-    #pragma message("tas5805m_1.1+eq_60Hz_cutoff+right config is used") 
-    #include "startup/tas5805m_1.1+eq_60Hz_cutoff+right.h"
+    // #pragma message("tas5805m_1.0+basic config is used")
+    // #include "startup/tas5805m_1.0+basic.h"
+    // #pragma message("tas5805m_0.1+eq_40Hz_cutoff config is used")
+    // #include "startup/tas5805m_0.1+eq_40Hz_cutoff.h"
+    // #pragma message("tas5805m_0.1+eq_60Hz_cutoff config is used")
+    // #include "startup/tas5805m_0.1+eq_60Hz_cutoff.h"
+    // #pragma message("tas5805m_0.1+eq_100Hz_cutoff config is used")
+    // #include "startup/tas5805m_0.1+eq_100Hz_cutoff.h"// works: yes // <- purepath (PBTL) subwoofer mode 
+    // #pragma message("tas5805m_1.1+eq_60Hz_cutoff+mono config is used")
+    // #include "startup/tas5805m_1.1+eq_60Hz_cutoff+mono.h"
+    // #pragma message("tas5805m_1.1+eq_60Hz_cutoff+left config is used")
+    // #include "startup/tas5805m_1.1+eq_60Hz_cutoff+left.h"
+    // #pragma message("tas5805m_1.1+eq_60Hz_cutoff+right config is used") 
+    // #include "startup/tas5805m_1.1+eq_60Hz_cutoff+right.h"
 #else
-    #pragma message("tas5805m_2.0+minimal config is used")
     #include "startup/tas5805m_2.0+minimal.h"
-#endif
-
 #endif
 
 #define IS_KERNEL_MAJOR_BELOW_5 (LINUX_VERSION_CODE < KERNEL_VERSION(6, 0, 0))
@@ -127,8 +116,7 @@ struct tas5805m_priv {
 
 static void tas5805m_refresh(struct snd_soc_component *component)
 {
-    struct tas5805m_priv *tas5805m =
-        snd_soc_component_get_drvdata(component);
+    struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
     struct regmap *rm = tas5805m->regmap;
     int ret;
 
@@ -174,126 +162,22 @@ static const struct soc_enum dac_switch_freq_enum = SOC_ENUM_SINGLE(
     switch_freq_text     /* Array of text values */
 );
 
-/*
-static int dac_level_meter_get(struct snd_kcontrol *kcontrol,
-                               struct snd_ctl_elem_value *ucontrol)
-{
-    printk(KERN_INFO "tas5805m: dac_level_meter_get\n");
-
-    struct snd_soc_component *component;
-    struct tas5805m_priv *tas5805m;
-    struct regmap *rm;
-    int level = 0;
-    int ret = 0;
-    u8 buf[4];
-
-    if (!kcontrol) {
-        printk(KERN_ERR "tas5805m: kcontrol is NULL\n");
-        return -EINVAL;
-    }
-
-    component = snd_kcontrol_chip(kcontrol);
-    if (!component) {
-        printk(KERN_ERR "tas5805m: component is NULL\n");
-        return -EINVAL;
-    }
-
-    tas5805m = snd_soc_component_get_drvdata(component);
-    if (!tas5805m) {
-        printk(KERN_ERR "tas5805m: tas5805m is NULL\n");
-        return -EINVAL;
-    }
-
-    rm = tas5805m->regmap;
-    if (!rm) {
-        printk(KERN_ERR "tas5805m: regmap is NULL\n");
-        return -EINVAL;
-    }
-
-    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
-    if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_PAGE_SET: %d\n", ret);
-        return ret;
-    }
-
-    ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, REG_BOOK_LEVEL_METER);
-    if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_BOOK_SET: %d\n", ret);
-        return ret;
-    }
-
-    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, REG_PAGE_LEVEL_METER);
-    if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_PAGE_SET: %d\n", ret);
-        return ret;
-    }
-
-    ret = regmap_bulk_read(rm, TAS5805M_REG_LEVEL_METER_LEFT, buf, 4);
-    if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to read level meter: %d\n", ret);
-        return ret;
-    } else {
-        level = map_1_31_to_db(buf);
-    }
-
-    ret = regmap_write(rm, TAS5805M_REG_LEVEL_METER_LEFT, TAS5805M_REG_PAGE_ZERO);
-    if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_LEVEL_METER_LEFT: %d\n", ret);
-        return ret;
-    }
-
-    ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, TAS5805M_REG_BOOK_CONTROL_PORT);
-    if (ret < 0) {
-        printk(KERN_ERR "tas5805m: Failed to write TAS5805M_REG_BOOK_SET: %d\n", ret);
-        return ret;
-    }
-
-    ucontrol->value.integer.value[0] = level; 
-    return 0;
-}
-
-static const struct snd_kcontrol_new dac_level_meter_control = {
-    .iface = SNDRV_CTL_ELEM_IFACE_MIXER,        // Mixer control 
-    .name = "DAC Output Level",                 // Name of the control 
-    .access = SNDRV_CTL_ELEM_ACCESS_READ,       // Read-only access 
-    .info = snd_soc_info_volsw,                 // Volume slider-like info function 
-    .get = dac_level_meter_get,                 // Custom get function 
-};
-*/
-
 #define SET_BOOK_AND_PAGE(rm, BOOK, PAGE) \
     do { \
         regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO); \
-        printk(KERN_DEBUG "@page: %#x\n", TAS5805M_REG_PAGE_ZERO); \
-        regmap_write(rm, TAS5805M_REG_BOOK_SET, BOOK); \
-        printk(KERN_DEBUG "@book: %#x\n", BOOK); \
-        regmap_write(rm, TAS5805M_REG_PAGE_SET, PAGE); \
-        printk(KERN_DEBUG "@page: %#x\n", PAGE); \
+        /* printk(KERN_DEBUG "@page: %#x\n", TAS5805M_REG_PAGE_ZERO); */ \
+        regmap_write(rm, TAS5805M_REG_BOOK_SET, BOOK);                   \
+        /* printk(KERN_DEBUG "@book: %#x\n", BOOK);                   */ \
+        regmap_write(rm, TAS5805M_REG_PAGE_SET, PAGE);                   \
+        /* printk(KERN_DEBUG "@page: %#x\n", PAGE);                   */ \
     } while (0)
     
 // Macro to define ALSA controls for meters
-#define MIXER_CONTROL_DECL(alias, reg, control_name)                      \
+#define MIXER_CONTROL_DECL(ix, alias, reg, control_name)                  \
 static int alias##_get(struct snd_kcontrol *kcontrol,                     \
                       struct snd_ctl_elem_value *ucontrol) {              \
-    struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);    \
-    struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component); \
-    struct regmap *rm = tas5805m->regmap;                                 \
-    int ret;                                                              \
-    u8 buf[4] = {0};                                                      \
-    int level = 0;                                                        \
-    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_5, TAS5805M_REG_BOOK_5_MIXER_PAGE); \
-    ret = regmap_bulk_read(rm, reg, buf, 4);                              \
-    printk(KERN_DEBUG "read register %#x\n", reg);                        \
-    if (ret != 0) {                                                       \
-        printk(KERN_ERR "tas5805m: Failed to read register %d: %d\n", reg, ret); \
-        return ret;                                                       \
-    } else {                                                              \
-        printk(KERN_DEBUG "\t %#x %#x %#x %#x\n", buf[0], buf[1], buf[2], buf[3]); \
-        level = map_9_23_to_db(buf);                                      \
-        printk(KERN_DEBUG "\t which is %d", level);                       \
-    }                                                                     \
-    ucontrol->value.integer.value[0] = level;                             \
-    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO); \
+    ucontrol->value.integer.value[0] = kcontrol->private_value;           \
+    printk(KERN_DEBUG "tas5805m: MXR get %d %d\n", ix, (int)(kcontrol->private_value)); \
     return 0;                                                             \
 }                                                                         \
                                                                           \
@@ -302,19 +186,29 @@ static int alias##_set(struct snd_kcontrol *kcontrol,                     \
     struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);    \
     struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component); \
     struct regmap *rm = tas5805m->regmap;                                 \
-    int ret;                                                              \
-    u8 buf[4] = {0};                                                      \
     int value = ucontrol->value.integer.value[0];                         \
-    map_db_to_9_23(value, buf);                                           \
-    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_5, TAS5805M_REG_BOOK_5_MIXER_PAGE); \
-    ret = regmap_bulk_write(rm, reg, buf, 4);                             \
-    printk(KERN_DEBUG "write register %#x: %#x %#x %#x %#x\n", reg, buf[0], buf[1], buf[2], buf[3]); \
-    if (ret != 0) {                                                       \
-        printk(KERN_ERR "tas5805m: Failed to write register %d: %d\n", reg, ret); \
-        return ret;                                                       \
+    printk(KERN_DEBUG "tas5805m: MXR set %d %d\n", ix, value);            \
+                                                                          \
+    if (value < TAS5805M_MIXER_MIN_DB || value > TAS5805M_MIXER_MAX_DB)   \
+        return -EINVAL;                                                   \
+                                                                          \
+    if (kcontrol->private_value != value) {                               \
+        kcontrol->private_value = value;                                  \
+                                                                          \
+        int ret;                                                          \
+        u8 buf[4] = {0};                                                  \
+        map_db_to_9_23(value, buf);                                       \
+        SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_5, TAS5805M_REG_BOOK_5_MIXER_PAGE); \
+        ret = regmap_bulk_write(rm, reg, buf, 4);                         \
+        /* printk(KERN_DEBUG "write register %#x: %#x %#x %#x %#x\n", reg, buf[0], buf[1], buf[2], buf[3]); */ \
+        if (ret != 0) {                                                   \
+            printk(KERN_ERR "tas5805m: Failed to write register %d: %d\n", reg, ret); \
+            return ret;                                                   \
+        }                                                                 \
+        /* printk(KERN_DEBUG "\t which is %d", value);    */              \
+        SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO); \
+        return 1;                                                         \
     }                                                                     \
-    printk(KERN_DEBUG "\t which is %d", value);                           \
-    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO); \
     return 0;                                                             \
 }                                                                         \
                                                                           \
@@ -323,8 +217,8 @@ static int alias##_info                                                   \
 {                                                                         \
     uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;                            \
     uinfo->count = 1;                                                     \
-    uinfo->value.integer.min = -110;                                      \
-    uinfo->value.integer.max = 15;                                        \
+    uinfo->value.integer.min = TAS5805M_MIXER_MIN_DB;                     \
+    uinfo->value.integer.max = TAS5805M_MIXER_MAX_DB;                     \
     return 0;                                                             \
 }                                                                         \
                                                                           \
@@ -335,32 +229,33 @@ static const struct snd_kcontrol_new alias##_control = {                  \
     .info = alias##_info,                                                 \
     .get = alias##_get,                                                   \
     .put = alias##_set,                                                   \
+    .private_value = 0                                                    \
 };                                                                        \
 
 // Mixer controls
-MIXER_CONTROL_DECL(left_to_left_mixer, TAS5805M_REG_LEFT_TO_LEFT_GAIN, "L-L Mixer Gain");
-MIXER_CONTROL_DECL(right_to_left_mixer, TAS5805M_REG_RIGHT_TO_LEFT_GAIN, "R-L Mixer Gain");
-MIXER_CONTROL_DECL(left_to_right_mixer, TAS5805M_REG_LEFT_TO_RIGHT_GAIN, "L-R Mixer Gain");
-MIXER_CONTROL_DECL(right_to_right_mixer, TAS5805M_REG_RIGHT_TO_RIGHT_GAIN, "R-R Mixer Gain");
-
+MIXER_CONTROL_DECL(0, left_to_left_mixer, TAS5805M_REG_LEFT_TO_LEFT_GAIN, "L>L Mixer Gain");
+MIXER_CONTROL_DECL(1, right_to_left_mixer, TAS5805M_REG_RIGHT_TO_LEFT_GAIN, "R>L Mixer Gain");
+MIXER_CONTROL_DECL(2, left_to_right_mixer, TAS5805M_REG_LEFT_TO_RIGHT_GAIN, "L>R Mixer Gain");
+MIXER_CONTROL_DECL(3, right_to_right_mixer, TAS5805M_REG_RIGHT_TO_RIGHT_GAIN, "R>R Mixer Gain");
 
 // Macro to define ALSA controls for EQ bands
-#define DEFINE_EQ_BAND_CONTROL(IX, FREQ) \
-static int eq_band_##FREQ##_get(struct snd_kcontrol *kcontrol,              \
+#define DEFINE_EQ_BAND_CONTROL(ix, freq) \
+static int eq_band_##freq##_get(struct snd_kcontrol *kcontrol,              \
                       struct snd_ctl_elem_value *ucontrol) {                \
     ucontrol->value.integer.value[0] = kcontrol->private_value;             \
+    printk(KERN_DEBUG "tas5805m: EQ get %d %d\n", ix, (int)(kcontrol->private_value)); \
     return 0;                                                               \
 }                                                                           \
                                                                             \
-static int eq_band_##FREQ##_set(struct snd_kcontrol *kcontrol,              \
+static int eq_band_##freq##_set(struct snd_kcontrol *kcontrol,              \
                       struct snd_ctl_elem_value *ucontrol) {                \
     struct snd_soc_component *component = snd_kcontrol_chip(kcontrol);      \
     struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component); \
     struct regmap *rm = tas5805m->regmap;                                   \
-    int FREQ_INDEX = IX;                                                    \
+    int freq_index = ix;                                                    \
     int value = ucontrol->value.integer.value[0];                           \
     int current_page = 0;                                                   \
-    printk(KERN_DEBUG "EQ set: %d\n", value);                               \
+    printk(KERN_DEBUG "tas5805m: EQ set %d %d\n", ix, value);               \
                                                                             \
     if (value < TAS5805M_EQ_MIN_DB || value > TAS5805M_EQ_MAX_DB)           \
         return -EINVAL;                                                     \
@@ -369,13 +264,12 @@ static int eq_band_##FREQ##_set(struct snd_kcontrol *kcontrol,              \
         kcontrol->private_value = value;                                    \
                                                                             \
         int x = value + TAS5805M_EQ_MAX_DB;                                 \
-        int y = FREQ_INDEX * TAS5805M_EQ_KOEF_PER_BAND * TAS5805M_EQ_REG_PER_KOEF; \
-        printk(KERN_DEBUG "x = %d, y = %d", x, y);                          \
+        int y = freq_index * TAS5805M_EQ_KOEF_PER_BAND * TAS5805M_EQ_REG_PER_KOEF; \
                                                                             \
         for (int i = 0; i < TAS5805M_EQ_KOEF_PER_BAND * TAS5805M_EQ_REG_PER_KOEF; i++) { \
             const reg_sequence_eq *reg_value = &tas5805m_eq_registers[x][y + i]; \
             if (reg_value == NULL) {                                        \
-                printk(KERN_ERR "NULL pointer encountered at row[%d]\n", y + i); \
+                printk(KERN_ERR "tas5805m: NULL pointer encountered at row[%d]\n", y + i); \
                 continue;                                                   \
             }                                                               \
                                                                             \
@@ -384,7 +278,7 @@ static int eq_band_##FREQ##_set(struct snd_kcontrol *kcontrol,              \
                 SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_EQ, reg_value->page); \
             }                                                               \
                                                                             \
-            printk(KERN_DEBUG "+ %d: w 0x%x 0x%x\n", i, reg_value->offset, reg_value->value); \
+            /* printk(KERN_DEBUG "+ %d: w 0x%x 0x%x\n", i, reg_value->offset, reg_value->value); */ \
             regmap_write(rm, reg_value->offset, reg_value->value);          \
         }                                                                   \
                                                                             \
@@ -394,7 +288,7 @@ static int eq_band_##FREQ##_set(struct snd_kcontrol *kcontrol,              \
     return 0;                                                               \
 }                                                                           \
                                                                             \
-static int eq_band_##FREQ##_info(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_info *uinfo) { \
+static int eq_band_##freq##_info(struct snd_kcontrol *kcontrol, struct snd_ctl_elem_info *uinfo) { \
     uinfo->type = SNDRV_CTL_ELEM_TYPE_INTEGER;                              \
     uinfo->count = 1;                                                       \
     uinfo->value.integer.min = TAS5805M_EQ_MIN_DB;                          \
@@ -402,13 +296,13 @@ static int eq_band_##FREQ##_info(struct snd_kcontrol *kcontrol, struct snd_ctl_e
     return 0;                                                               \
 }                                                                           \
                                                                             \
-static const struct snd_kcontrol_new eq_band_##FREQ##_control = {           \
+static const struct snd_kcontrol_new eq_band_##freq##_control = {           \
     .iface = SNDRV_CTL_ELEM_IFACE_MIXER,                                    \
-    .name = #FREQ " Hz",                                                    \
+    .name = #freq " Hz",                                                    \
     .access = SNDRV_CTL_ELEM_ACCESS_READWRITE,                              \
-    .info = eq_band_##FREQ##_info,                                          \
-    .get = eq_band_##FREQ##_get,                                            \
-    .put = eq_band_##FREQ##_set,                                            \
+    .info = eq_band_##freq##_info,                                          \
+    .get = eq_band_##freq##_get,                                            \
+    .put = eq_band_##freq##_set,                                            \
     .private_value = 0                                                      \
 };
 
@@ -429,13 +323,17 @@ DEFINE_EQ_BAND_CONTROL(12, 05000)
 DEFINE_EQ_BAND_CONTROL(13, 08000)
 DEFINE_EQ_BAND_CONTROL(14, 16000)
 
-static const struct snd_kcontrol_new tas5805m_snd_controls[] = {        // New
-    SOC_SINGLE_TLV ("Digital Volume", TAS5805M_REG_VOL_CTL, 0, 255, 1, tas5805m_vol_tlv), // (xname, reg, shift, max, invert, tlv_array)
-    SOC_SINGLE_TLV ("Analog Gain", TAS5805M_REG_ANALOG_GAIN, 0, 31, 1, tas5805m_again_tlv), // (xname, reg, shift, max, invert, tlv_array)
+static const struct snd_kcontrol_new tas5805m_snd_controls[] = 
+{        
+    SOC_SINGLE_TLV ("Volume Digital", TAS5805M_REG_VOL_CTL, 0, 255, 1, tas5805m_vol_tlv), // (xname, reg, shift, max, invert, tlv_array)
+    SOC_SINGLE_TLV ("Volume Analog", TAS5805M_REG_ANALOG_GAIN, 0, 31, 1, tas5805m_again_tlv), // (xname, reg, shift, max, invert, tlv_array)
 
-    SOC_ENUM("Bridge Mode", dac_mode_enum),
-    SOC_ENUM("Modulation Scheme", dac_modulation_mode_enum),
-    SOC_ENUM("Switching freq", dac_switch_freq_enum),
+    SOC_ENUM("Driver Modulation Scheme", dac_modulation_mode_enum),
+    SOC_ENUM("Driver Switching freq", dac_switch_freq_enum),
+
+#if !defined(TAS5805M_DSP_CUSTOM)
+
+    SOC_ENUM("Driver Bridge Mode", dac_mode_enum),
     SOC_ENUM("Equalizer", eq_mode_enum),
  
     // channel mixer controls
@@ -459,6 +357,9 @@ static const struct snd_kcontrol_new tas5805m_snd_controls[] = {        // New
     eq_band_05000_control,
     eq_band_08000_control,
     eq_band_16000_control,
+
+#endif
+
 };
 
 static void send_cfg(struct regmap *rm,
@@ -819,90 +720,6 @@ static struct i2c_driver tas5805m_i2c_driver = {
         .of_match_table = of_match_ptr(tas5805m_of_match),
     },
 };
-
-/**
- * Convert a 4-byte 1.31 fixed-point value to an integer dB value.
- *
- * @param buffer   Pointer to a 4-byte array containing the 1.31 value.
- * @return         Integer dB value, or -100 for silence.
- */
-// static int map_1_31_to_db(const u8 buffer[4]) {
-//     // Combine the 4-byte buffer into a signed 32-bit integer
-//     int32_t fixed_value = (buffer[0] << 24) |
-//                           (buffer[1] << 16) |
-//                           (buffer[2] << 8) |
-//                           (buffer[3]);
-
-//     // Handle the case where the value is zero (silence)
-//     if (fixed_value == 0) {
-//         return -100; // Return a very low dB value for silence
-//     }
-
-//     // Take the absolute value
-//     if (fixed_value < 0) {
-//         fixed_value = -fixed_value;
-//     }
-
-//     // Calculate dB using an integer approximation of log10
-//     // Scaling factor to avoid floating-point math
-//     int64_t value = (int64_t)fixed_value;
-//     int dB = 0;
-
-//     // Integer approximation of log10 using a lookup table or iterative method
-//     // Shift value into a range manageable for dB calculations
-//     while (value < (1UL << 30)) {
-//         value <<= 1;
-//         dB -= 6; // ~6 dB per factor of 2
-//     }
-
-//     while (value >= (2UL << 30)) {
-//         value >>= 1;
-//         dB += 6; // ~6 dB per factor of 2
-//     }
-
-//     // Fine-tune dB calculation (optional, depending on accuracy needs)
-//     if (value > (int64_t)(1.5 * (1UL << 31))) {
-//         dB += 3;
-//     }
-
-//     return dB;
-// }
-
-/**
- * Convert a 4-byte buffer in "9.23" fixed-point format to dB.
- * @param buffer 4-byte buffer containing the 9.23 fixed-point value.
- * @return Integer decibel value.
- */
-static int map_9_23_to_db(const uint8_t buffer[4]) {
-    // Combine the 4-byte array into a single 32-bit unsigned integer
-    uint32_t value = (buffer[0] << 24) | (buffer[1] << 16) | (buffer[2] << 8) | buffer[3];
-    
-    // Reference values: 0x00800000 (linear = 1.0) maps to 0 dB
-    //                   0x00400000 (linear = 0.5) maps to -6 dB
-    const uint32_t reference = 0x00800000; // 1.0 in 9.23 format
-    const int scale_per_halving = -6;      // Each halving reduces dB by -6
-    
-    int db = 0;
-
-    // Handle edge case: if value is 0, treat as the minimum dB
-    if (value == 0) {
-        return -110; // Assume -110 dB for complete silence
-    }
-
-    // Scale value down to compare with reference
-    while (value < reference) {
-        value <<= 1; // Shift left to scale up
-        db += scale_per_halving; // Add -6 dB for each halving
-    }
-
-    // Scale value up to compare with reference
-    while (value > reference) {
-        value >>= 1; // Shift right to scale down
-        db -= scale_per_halving; // Subtract -6 dB for each doubling
-    }
-
-    return db;
-}
 
 /**
  * Convert a dB value into a 4-byte buffer in "9.23" fixed-point format.
