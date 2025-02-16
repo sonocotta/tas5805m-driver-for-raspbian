@@ -105,8 +105,7 @@ struct tas5805m_priv {
 
     struct regmap           *regmap;
 
-    bool                     is_powered;
-    bool                     is_muted;
+    bool                     is_started; 
 
 	struct workqueue_struct *my_wq;
 	struct work_struct work;
@@ -114,20 +113,112 @@ struct tas5805m_priv {
     int trigger_cmd;
 };
 
-static void tas5805m_refresh(struct snd_soc_component *component)
+#define SET_BOOK_AND_PAGE(rm, BOOK, PAGE) \
+    do { \
+        regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO); \
+        /* printk(KERN_DEBUG "@page: %#x\n", TAS5805M_REG_PAGE_ZERO); */ \
+        regmap_write(rm, TAS5805M_REG_BOOK_SET, BOOK);                   \
+        /* printk(KERN_DEBUG "@book: %#x\n", BOOK);                   */ \
+        regmap_write(rm, TAS5805M_REG_PAGE_SET, PAGE);                   \
+        /* printk(KERN_DEBUG "@page: %#x\n", PAGE);                   */ \
+    } while (0)
+
+static void send_cfg(struct regmap *rm,
+             const u8 *s, unsigned int len)
+{
+    unsigned int i;
+    int ret;
+
+    printk(KERN_DEBUG "send_cfg: Sending configuration to the device\n");
+
+    for (i = 0; i + 1 < len; i += 2) {
+        // printk(KERN_DEBUG "\tregmap_write: %#02x %#02x", s[i], s[i + 1]);
+        ret = regmap_write(rm, s[i], s[i + 1]);
+        if (ret)
+            printk(KERN_ERR "send_cfg: regmap_write failed for %#02x: %d\n", s[i], ret);
+    }
+
+    printk(KERN_DEBUG "send_cfg: %d registers sent\n", len / 2); 
+}
+
+static void tas5805m_startup(struct snd_soc_component *component)
 {
     struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
     struct regmap *rm = tas5805m->regmap;
     int ret;
 
-    printk(KERN_DEBUG "tas5805m_refresh: Refreshing the component\n");
+    usleep_range(5000, 10000);
+    printk(KERN_DEBUG "tas5805m_startup: sending preboot register settings\n");
+    send_cfg(rm, dsp_cfg_preboot, ARRAY_SIZE(dsp_cfg_preboot));
+    usleep_range(5000, 15000);
 
-    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
-    ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, TAS5805M_REG_BOOK_CONTROL_PORT);
-    ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
+    if (tas5805m->dsp_cfg_data) {
+        send_cfg(rm, tas5805m->dsp_cfg_data, tas5805m->dsp_cfg_len);
+    } else {
+        ret = regmap_register_patch(rm, tas5805m_init_sequence, ARRAY_SIZE(tas5805m_init_sequence));
+        if (ret != 0)
+        {
+            printk(KERN_ERR "tas5805m_startup: failed to initialize TAS5805M: %d\n",ret);
+            return;
+        } else {
+            printk(KERN_DEBUG "tas5805m_startup: sent %d register settings\n", ARRAY_SIZE(tas5805m_init_sequence));
+        }
+    }
 
-    ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, (tas5805m->is_muted ? TAS5805M_DCTRL2_MUTE : 0) | TAS5805M_DCTRL2_MODE_PLAY);
+    tas5805m->is_started = true;
+}
+
+static void tas5805m_check_faults(struct snd_soc_component *component)
+{
+    struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
+    struct regmap *rm = tas5805m->regmap;
+    int ret;
+    unsigned int chan = 0, global1 = 0, global2 = 0;
+
+    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO);
+
+    ret = regmap_read(rm, TAS5805M_REG_CHAN_FAULT, &chan);
+    if (chan) {
+        if (chan & (1 << 0))  
+            printk(KERN_WARNING "tas5805m: Right channel over current fault");
+
+        if (chan & (1 << 1))
+            printk(KERN_WARNING "tas5805m: Left channel over current fault");
+
+        if (chan & (1 << 2)) 
+            printk(KERN_WARNING "tas5805m: Right channel DC fault");
+
+        if (chan & (1 << 3))  
+            printk(KERN_WARNING "tas5805m: Left channel DC fault");
+    }
+
+    ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT1, &global1);
+    if (global1) {
+        if (global1 & (1 << 0))  
+            printk(KERN_WARNING "tas5805m: PVDD UV fault");
+
+        if (global1 & (1 << 1))
+            printk(KERN_WARNING "tas5805m: PVDD OV fault");
+
+        if (global1 & (1 << 2)) 
+            printk(KERN_DEBUG "tas5805m: Clock fault");
+
+        if (global1 & (1 << 6))  
+            printk(KERN_WARNING "tas5805m: The recent BQ is written failed");
+
+        if (global1 & (1 << 7))  
+            printk(KERN_WARNING "tas5805m: Indicate OTP CRC check error");
+
+    }
+
+    ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT2, &global2);
+    if (global2) {
+        if (global2 & (1 << 0))  
+            printk(KERN_WARNING "tas5805m: Over temperature shut down fault");
+    }
+
     ret = regmap_write(rm, TAS5805M_REG_FAULT, TAS5805M_ANALOG_FAULT_CLEAR);    // Is necessary for compatibility with TAS5828m
+
 }
 
 static const SNDRV_CTL_TLVD_DECLARE_DB_SCALE(tas5805m_vol_tlv, -10350, 50, 1);    // New (name, min, step, mute)
@@ -161,16 +252,6 @@ static const struct soc_enum dac_switch_freq_enum = SOC_ENUM_SINGLE(
     2,                   /* Number of items (2 possible modes: Normal, Bridge) */
     switch_freq_text     /* Array of text values */
 );
-
-#define SET_BOOK_AND_PAGE(rm, BOOK, PAGE) \
-    do { \
-        regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO); \
-        /* printk(KERN_DEBUG "@page: %#x\n", TAS5805M_REG_PAGE_ZERO); */ \
-        regmap_write(rm, TAS5805M_REG_BOOK_SET, BOOK);                   \
-        /* printk(KERN_DEBUG "@book: %#x\n", BOOK);                   */ \
-        regmap_write(rm, TAS5805M_REG_PAGE_SET, PAGE);                   \
-        /* printk(KERN_DEBUG "@page: %#x\n", PAGE);                   */ \
-    } while (0)
     
 // Macro to define ALSA controls for meters
 #define MIXER_CONTROL_DECL(ix, alias, reg, control_name)                  \
@@ -362,78 +443,36 @@ static const struct snd_kcontrol_new tas5805m_snd_controls[] =
 
 };
 
-static void send_cfg(struct regmap *rm,
-             const u8 *s, unsigned int len)
-{
-    unsigned int i;
-    int ret;
-
-    printk(KERN_DEBUG "send_cfg: Sending configuration to the device\n");
-
-    for (i = 0; i + 1 < len; i += 2) {
-        printk(KERN_DEBUG "\tregmap_write: %#02x %#02x", s[i], s[i + 1]);
-        ret = regmap_write(rm, s[i], s[i + 1]);
-        if (ret)
-            printk(KERN_ERR "send_cfg: regmap_write failed for %#02x: %d\n", s[i], ret);
-    }
-
-    printk(KERN_DEBUG "send_cfg: %d registers sent\n", len / 2); 
-}
-
 static void tas5805m_work_handler(struct work_struct *work) 
 {
     struct tas5805m_priv *tas5805m = container_of(work, struct tas5805m_priv, work);
     struct regmap *rm = tas5805m->regmap;
     int ret;
-    unsigned int chan, global1, global2;
 
     switch (tas5805m->trigger_cmd) {
-    case SNDRV_PCM_TRIGGER_START:
-    case SNDRV_PCM_TRIGGER_RESUME:
-    case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-        printk(KERN_DEBUG "tas5805m_work_handler: DSP startup\n");
+        case SNDRV_PCM_TRIGGER_START:
+        case SNDRV_PCM_TRIGGER_RESUME:
+        case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
+            printk(KERN_DEBUG "tas5805m_work_handler: DSP startup\n");
 
-        usleep_range(5000, 10000);
-        send_cfg(rm, dsp_cfg_preboot, ARRAY_SIZE(dsp_cfg_preboot));
-        printk(KERN_DEBUG "tas5805m_work_handler: sent preboot register settings\n");
-        usleep_range(5000, 15000);
+            if (!tas5805m->is_started)
+                tas5805m_startup(tas5805m->component);
 
-        if (tas5805m->dsp_cfg_data) {
-            send_cfg(rm, tas5805m->dsp_cfg_data, tas5805m->dsp_cfg_len);
-        } else {
-			ret = regmap_register_patch(rm, tas5805m_init_sequence, ARRAY_SIZE(tas5805m_init_sequence));
-			if (ret != 0)
-			{
-				printk(KERN_ERR "tas5805m_work_handler: failed to initialize TAS5805M: %d\n",ret);
-				return;
-			} else {
-                printk(KERN_DEBUG "tas5805m_work_handler: sent %d register settings\n", ARRAY_SIZE(tas5805m_init_sequence));
-            }
-        }
+            printk(KERN_DEBUG "tas5805m_work_handler: DAC mode -> PLAY\n");
+            ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MODE_PLAY);
+            break;
 
-        tas5805m->is_powered = true;
-        tas5805m_refresh(tas5805m->component);
-        break;
+        case SNDRV_PCM_TRIGGER_STOP:
+        case SNDRV_PCM_TRIGGER_SUSPEND:
+        case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
+            printk(KERN_DEBUG "tas5805m_work_handler: DSP shutdown\n");
+            tas5805m_check_faults(tas5805m->component);
+            ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MUTE);
+            break;
 
-    case SNDRV_PCM_TRIGGER_STOP:
-    case SNDRV_PCM_TRIGGER_SUSPEND:
-    case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
-        printk(KERN_DEBUG "tas5805m_work_handler: DSP shutdown\n");
-
-        tas5805m->is_powered = false;
-
-        ret = regmap_write(rm, TAS5805M_REG_PAGE_SET, TAS5805M_REG_PAGE_ZERO);
-        ret = regmap_write(rm, TAS5805M_REG_BOOK_SET, TAS5805M_REG_BOOK_CONTROL_PORT);
-
-        ret = regmap_read(rm, TAS5805M_REG_CHAN_FAULT, &chan);
-        ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT1, &global1);
-        ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT2, &global2);
-        ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MODE_PLAY | TAS5805M_DCTRL2_MUTE);
-        break;
-
-    default:
-        printk(KERN_ERR "tas5805m_work_handler: Invalid command\n");
-        break;
+        default:
+            printk(KERN_ERR "tas5805m_work_handler: Invalid command\n");
+            break;
     }
 }
 
@@ -481,7 +520,7 @@ static const struct snd_soc_dapm_widget tas5805m_dapm_widgets[] = {
 };
 
 static const struct snd_soc_component_driver soc_codec_dev_tas5805m = {
-    .controls       = tas5805m_snd_controls,
+    .controls           = tas5805m_snd_controls,
     .num_controls       = ARRAY_SIZE(tas5805m_snd_controls),
     .dapm_widgets       = tas5805m_dapm_widgets,
     .num_dapm_widgets   = ARRAY_SIZE(tas5805m_dapm_widgets),
@@ -494,14 +533,18 @@ static const struct snd_soc_component_driver soc_codec_dev_tas5805m = {
 static int tas5805m_mute(struct snd_soc_dai *dai, int mute, int direction)
 {
     struct snd_soc_component *component = dai->component;
-    struct tas5805m_priv *tas5805m =
-        snd_soc_component_get_drvdata(component);
+    struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
+    struct regmap *rm = tas5805m->regmap;
+    int ret;
 
-    printk(KERN_DEBUG "tas5805m_mute: set mute=%d (is_powered=%d)\n",
-        mute, tas5805m->is_powered);
-    tas5805m->is_muted = mute;
-    if (tas5805m->is_powered)
-        tas5805m_refresh(component);
+    SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_ZERO);
+    if (mute) {
+        printk(KERN_DEBUG "tas5805m_mute: DAC mode -> SLEEP\n");
+        ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MODE_SLEEP);
+    } else {
+        printk(KERN_DEBUG "tas5805m_mute: DAC mode -> MUTE\n");
+        ret = regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MUTE);
+    }
 
     return 0;
 }
