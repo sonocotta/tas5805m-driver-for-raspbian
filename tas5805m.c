@@ -49,10 +49,10 @@ static void map_db_to_9_23(int db_value, u8 buffer[4]);
     // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-1Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
     // #pragma message("tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
     // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
-    // #pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
-    // #include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
-    #pragma message("tas5805m_2.0+basic config is used")
-    #include "startup/tas5805m_2.0+basic.h"
+    #pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
+    #include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
+    // #pragma message("tas5805m_2.0+basic config is used")
+    // #include "startup/tas5805m_2.0+basic.h"
     // #pragma message("tas5805m_1.0+basic config is used")
     // #include "startup/tas5805m_1.0+basic.h"
     // #pragma message("tas5805m_0.1+eq_40Hz_cutoff config is used")
@@ -258,7 +258,7 @@ static const struct soc_enum dac_switch_freq_enum = SOC_ENUM_SINGLE(
 static int alias##_get(struct snd_kcontrol *kcontrol,                     \
                       struct snd_ctl_elem_value *ucontrol) {              \
     ucontrol->value.integer.value[0] = kcontrol->private_value;           \
-    printk(KERN_DEBUG "tas5805m: MXR get %d %d\n", ix, (int)(kcontrol->private_value)); \
+    /* printk(KERN_DEBUG "tas5805m: MXR get %d %d\n", ix, (int)(kcontrol->private_value)); */ \
     return 0;                                                             \
 }                                                                         \
                                                                           \
@@ -324,7 +324,7 @@ MIXER_CONTROL_DECL(3, right_to_right_mixer, TAS5805M_REG_RIGHT_TO_RIGHT_GAIN, "R
 static int eq_band_##freq##_get(struct snd_kcontrol *kcontrol,              \
                       struct snd_ctl_elem_value *ucontrol) {                \
     ucontrol->value.integer.value[0] = kcontrol->private_value;             \
-    printk(KERN_DEBUG "tas5805m: EQ get %d %d\n", ix, (int)(kcontrol->private_value)); \
+    /* printk(KERN_DEBUG "tas5805m: EQ get %d %d\n", ix, (int)(kcontrol->private_value)); */ \
     return 0;                                                               \
 }                                                                           \
                                                                             \

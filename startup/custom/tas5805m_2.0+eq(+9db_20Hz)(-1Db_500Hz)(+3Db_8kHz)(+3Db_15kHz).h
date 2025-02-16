@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../tas5805m.h"
+#include "../../tas5805m.h"
 
 #ifdef __cplusplus
 extern "C" {
