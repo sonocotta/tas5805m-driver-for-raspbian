@@ -2,7 +2,7 @@
 # All options are disabled by default.  Enable only ONE.
 
 # CUSTOM DSP config
-# CFLAGS_tas5805m.o += -DTAS5805M_DSP_CUSTOM
+CFLAGS_tas5805m.o += -DTAS5805M_DSP_CUSTOM
 
 CFLAGS_tas5805m.o += -g
 
