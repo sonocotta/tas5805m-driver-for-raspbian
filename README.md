@@ -318,10 +318,11 @@ I'm working currently to fix this bug in either
 
 # TODO
 
-[ ] Spread spectrum switch
-[ ] Power testing for switching frequency, modulation, and output filters
-[ ] specific recommendations for my boards 
-[ ] Fix the bug with `alsa-restore` service not working
+- [ ] Spread spectrum switch
+- [ ] Soft clipper settings
+- [ ] Power testing for switching frequency, modulation, and output filters
+- [ ] specific recommendations for my boards 
+- [ ] Fix the bug with `alsa-restore` service not working
 
 ## References
 
