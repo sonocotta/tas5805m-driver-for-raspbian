@@ -1,6 +1,27 @@
-# TAS5805M DAC running Raspbian on Raspberry Pi (Zero, Zero W, Zero 2W)
+# TAS5805M DAC Linux kernel module 
 
-This repository contains the device tree and source for the `tas5805m` kernel module for Raspberry Pi Zero running under Raspbian. I prepared this repo to do it quickly
+This is a kernel module code to run a TAS5805M DAC on Raspberry Pi (Zero, Zero W, Zero 2W), Debian-based distributions (Raspbian, Volumio, DietPI, etc)
+
+The repository contains the device tree and source for the `tas5805m` kernel module. It also contains step-by-step instructions on how to use it.
+
+## Introduction
+
+I've created a [set of development boards](https://github.com/sonocotta/raspberry-media-center/) using TAS5805M DAC, and I think this DAC is truly unique in terms of its features for the price. Not only does it provide pure audio with incredibly high efficiency, but being a digital DAC with an I2C control interface it allows an incredible level of control over the DAC functions. When I started to work on this DAC using the ESP32 platform, information available for it was scarce, except for the datasheet nothing could be found. You say what else would you need? It turns out the datasheet has no information about the DSP function of the device, which is 95% of its complexity (and coolness I might say). Then there was a journey of trial and error and eventual success on the ESP32 platform, with consecutive move to the Raspberry.
+
+Linux kernel has [tas5805m](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/tas5805m.c) module code already. The first issue with it, it is not included by default in any kernel, and although it is possible to rebuild and reinstall the kernel on the Raspberry, it is definitely not a trivial task to do. But the real issue is, that it is a very basic, if not minimal implementation with nothing but startup sequence and volume pot implementation. what do we miss out?
+
+- Mixer controls - you have precise control over how left and right channel signals are routed into output drivers. Without it, you can't even get pure mono
+- Analog Gain - something you need to consider for lower distortions
+- Modulation scheme and switching frequency - very important to reach high efficiency for your power conditions
+- Bridge mode - if you aim to push out max power into a single speaker
+- 15-channel EQ controls (!!!) with precise transfer characteristics control
+- DRC/AGL for fine-tuning for specific enclosure/room compensation
+- FIR filter (no idea what it is for)
+- Soft-clipping - for lower distortions when you push it beyond reasonable.
+
+Nuff said, it is a great device and deserves community attention and adoption.
+
+## Installation
 
 We're about to build kernel modules, so we need to install a few dependencies first (all commands going forward are running on the target host, ie Raspberry Pi) 
 
@@ -25,12 +46,14 @@ $ sudo ./compile-overlay.sh
 
 this will compile the overlay file, put the compiled file under `/boot/overlays` 
 
-Next add to `/boot/config.txt`
+Next, add to `/boot/config.txt`
 
 ```
 # Enable DAC
 dtoverlay=tas5805m,i2creg=0x2d
 ```
+
+`0x2d` is an I2C address of the device, it can be different on boards, but you should find in the documentation what it is exactly
 
 You may also comment out built-in audio and HDMI if you're running headless
 
@@ -39,9 +62,9 @@ You may also comment out built-in audio and HDMI if you're running headless
 #dtoverlay=vc4-kms-v3d
 ```
 
-You need to reboot for changes to take effect, but this will not work just yet. The problem is we are referencing the `tas5805m` kernel module there, and this one is not included in Raspbian. Therefore we will build it on the same board using current kernel sources that we just installed 
+You need to reboot for changes to take effect, but this will not work just yet. We are referencing the `tas5805m` kernel module there, and this one is not there yet. Therefore we will build it on the same host using current kernel sources that we just pulled 
 
-## Kernel module
+## Kernel module - basic setup
 
 Now you are ready to build. The first command produces `tas5805m.ko` file among others. Second will copy it to the appropriate kernel modules folder.
 
@@ -60,7 +83,7 @@ card 0: LouderRaspberry [Louder-Raspberry], device 0: bcm2835-i2s-tas5805m-ampli
   Subdevice #0: subdevice #0
 ```
 
-Check if new module is correctly loaded
+Check if the new module is correctly loaded
 
 ```
 $ lsmod | grep tas5805m
@@ -69,13 +92,236 @@ regmap_i2c              5027  1 tas5805m
 snd_soc_core          240140  4 snd_soc_simple_card_utils,snd_soc_bcm2835_i2s,tas5805m,snd_soc_simple_card
 ```
 
-Now quick test if audio is functional
+Now quick test if the audio is functional
 
 ```
 speaker-test -t sine -f 500 -c 2
 ```
 
 And finally, I can hear a beeping sound in both speakers. Hooray!
+
+Alsa should give you baseline controls as well
+
+<image>
+
+### Digital volume and Analog gain
+
+> A combination of digital gain and analog gain is used to provide the overall gain of the speaker amplifier. The total amplifier gain consists of the digital gain and the analog gain from the input of the analog modulator to the output of the speaker amplifier power stage.
+
+> The first gain stage of the speaker amplifier is present in the digital audio path. Digital
+gain consists of the volume control, input Mixer, or output Crossbar. The digital gain is set to 0dB by default.
+Change analog gain via register 0x54, AGAIN[4:0] which supports 32 steps analog gain setting (0.5dB per step).
+These analog gain settings ensure that the output signal is not clipped at different PVDD levels. 0dBFS output
+corresponds to 29.5-V peak output voltage. 
+
+| Binary | dB Value | Output Voltage (V) |
+|--------|----------|--------------------|
+| 0      | 0        | 29.5               |
+| 1      | -0.5     | 27.92              |
+| 10     | -1       | 26.42              |
+| 11     | -1.5     | 25                 |
+| 100    | -2       | 23.65              |
+| 101    | -2.5     | 22.38              |
+| 110    | -3       | 21.17              |
+| 111    | -3.5     | 20.02              |
+| 1000   | -4       | 18.94              |
+| 1001   | -4.5     | 17.91              |
+| 1010   | -5       | 16.94              |
+| 1011   | -5.5     | 16.02              |
+| 1100   | -6       | 15.15              |
+| 1101   | -6.5     | 14.33              |
+| 1110   | -7       | 13.55              |
+| 1111   | -7.5     | 12.82              |
+| 10000  | -8       | 12.13              |
+| 10001  | -8.5     | 11.48              |
+| 10010  | -9       | 10.87              |
+| 10011  | -9.5     | 10.29              |
+| 10100  | -10      | 9.75               |
+| 10101  | -10.5    | 9.24               |
+| 10110  | -11      | 8.76               |
+| 10111  | -11.5    | 8.3                |
+| 11000  | -12      | 7.87               |
+| 11001  | -12.5    | 7.46               |
+| 11010  | -13      | 7.08               |
+| 11011  | -13.5    | 6.71               |
+| 11100  | -14      | 6.37               |
+| 11101  | -14.5    | 6.04               |
+| 11110  | -15      | 5.73               |
+| 11111  | -15.5    | 4.95               |
+
+Having analog gain set at the appropriate level, the digital volume should be used to set the desired audio volume. Keep in mind, it is **perfectly safe to set the analog gain at a lower level**, further avoiding clipping (and effectively limiting output power) and reducing digital distortions caused by low digital gain. 
+
+### Modulation scheme
+
+Both modulation scheme and switching frequency have an impact on power consumption and losses. 
+
+#### BD Modulation
+
+> This is a modulation scheme that allows operation without the classic LC reconstruction filter when the amp is
+driving an inductive load with short speaker wires. Each output is switching from 0 volts to the supply voltage.
+The OUTPx and OUTNx are in phase with each other with no input so that there is little or no current in the
+speaker. The duty cycle of OUTPx is greater than 50% and OUTNx is less than 50% for positive output voltages.
+The duty cycle of OUTPx is less than 50% and OUTNx is greater than 50% for negative output voltages. The
+voltage across the load sits at 0 V throughout most of the switching period, reducing the switching current, which
+reduces any I2R losses in the load.
+
+#### 1SPW Modulation
+
+> The 1SPW mode alters the normal modulation scheme in order to achieve higher efficiency with a slight penalty
+in THD degradation and more attention required in the output filter selection. In Low Idle Current mode the
+outputs operate at ~14% modulation during idle conditions. When an audio signal is applied one output will
+decrease and one will increase. The decreasing output signal will quickly rail to GND at which point all the audio
+modulation takes place through the rising output. The result is that only one output is switching during a majority
+of the audio cycle. Efficiency is improved in this mode due to the reduction of switching losses.
+
+#### Hybrid Modulation
+
+> Hybrid Modulation is designed to minimize power loss without compromising the THD+N performance, and is
+optimized for battery-powered applications. With Hybrid modulation enabled, the device detects the input signal level
+and adjust PWM duty cycle dynamically based on PVDD. Hybrid modulation achieves ultra low idle current and
+maintains the same audio performance level as the BD Modulation. In order to minimize the power dissipation,
+low switching frequency (For example, Fsw = 384 kHz) with proper LC filter (15 µH + 0.68 µF or 22 µH + 0.68
+µF) is recommended
+
+Not yet implemented:
+
+>1) With Hybrid Modulation, users need to input the system's PVDD value via device development App.
+> 2) With Hybrid Modulation, Change device state from Deep Sleep Mode to Play Mode, specific sequence is required:
+> 1. Set device's PWM Modulation to BD or 1SPW mode via Register (Book0/Page0/Register0x02h, Bit [1:0]).
+> 2. Set device to Hi-Z state via Register (Book0/Page0/Register0x03h, Bit [1:0]).
+> 3. Delay 2ms.
+> 4. Set device's PWM Modulation to Hybrid mode via Register (Book0/Page0/Register0x02h, Bit[1:0]).
+> 5. Delay 15ms.
+> 6. Set device to Play state via Register (Book0/Page0/Register0x03h, Bit [1:0])
+
+### Switching frequency
+
+TAS5805M supports different switching frequencies, which mostly affect the balance between output filter losses and EMI noise. Below is the recommendation from TI
+
+![image](https://github.com/user-attachments/assets/72d7c8cf-1e47-4b92-b191-c7f4a6728bd0)
+
+- Ferrite bead filter is appropriate for lower PVCC (< 12V)
+- Ferrite bead filter is recommended for use with  Fsw = 384 kHz with Spread spectrum enable, BD Modulation
+- With Inductor as the output filter, DAC can achieve ultra low idle current (with Hybrid Modulation or 1SPW Modulation) and keep large EMI margin. As the switching frequency of TAS5805M can be adjustable from 384kHz to 768 kHz. Higher switching frequency means smaller Inductor value needed
+  - With 768 kHz switching frequency. Designers can select 10uH + 0.68 µF or 4.7 µH +0.68 µF as the output filter, this will help customer to save the Inductor size with the same rated current during the inductor selection. With 4.7uH + 0.68uF, make sure PVDD ≤ 12V to avoid the large ripple current to trigger the OC threshold (5A)
+  - With 384 kHZ switching frequency. Designers can select 22 µH + 0.68 µF or 15 µH + 0.68 µF or 10 µH + 0.68 µF as the output filter, this will help customer to save power dissipation for some battery power supply application. With 10 µH + 0.68 µF, make sure PVDD ≤ 12 V to avoid the large ripple current to trigger the OC threshold (5 A).
+
+### Bridge mode
+
+TAS5805M has a bridge mode of operation, that causes both output drivers to synchronize and push out the same audio with double the power.  In that case single speaker is expected to be connected across channels, so remember to reconnect speakers if you're changing to bridge mode. 
+
+<image>
+
+## Basic mode disclaimer
+
+The basic method sets all DSP parameters into a disabled state, so at this point, you're using DAC in its most basic function. Currently, the only way to play with TAS5805M DSP is to buy an evaluation board from TI ($250+) and request TI PurePath software to interact with it. not only it is incredibly impractical, but you don't get to change settings on the fly as soon as you disconnect your PC from the evaluation board, since you can only take a snapshot of your settings and stick to them forever. Bugger!
+
+<PurePath screens>
+
+The work I'm trying to perform is to 
+
+- Allow settings snapshots to be applied on the board's startup without an evaluation kit, so at least you can transfer your carefully crafted settings into a working Raspberry setup
+- Allow some settings to be changed on the fly as if you had an evaluation kit all the time.
+
+## Kernel module - pre-defined setup
+
+As said above you can create a custom DSP config in the Ti PurePath application, which I did and included in the [startup](/startup) folder. Some of them are subwoofer configs, and some specific EQ settings fit my taste. I never intended to cover every possible scenario, but rather provide few examples starting from those I use most often. I encourage everyone to create their own configs in PurePath and include them in the startup folder as well.
+
+First, let's enable the  config we selected in the `tas5805m.c` file. Uncomment two lines like in the example below
+
+```
+#pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
+#include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
+```
+
+Enable custom DSP config in the `Makefile` by uncommenting this line
+
+```
+CFLAGS_tas5805m.o += -DTAS5805M_DSP_CUSTOM
+```
+
+rebuild and reinstall the driver and reboot the device
+
+```
+make all && sudo make install && sudo reboot
+```
+
+The audio changes will be applied after reboot, also you should find basic settings in the Alsa
+
+<alsa screenshot>
+
+## Kernel module - change settings on the fly
+
+I'm currently working on the alsa controls that directly change DSP settings on the device. This allows both on-demand in-place changes and code-driven changes from the UI or automation tools.
+
+Build the kernel with disabled DSP config in the `Makefile` flag
+
+```
+# CUSTOM DSP config
+# CFLAGS_tas5805m.o += -DTAS5805M_DSP_CUSTOM
+```
+
+As usual, build, install, reboot
+```
+make all && sudo make install && sudo reboot
+```
+
+After reboot you should be able to see the following settings in the Alsa. Let's go through them one by one
+
+<Alsa screenshot>
+
+### EQ controls
+
+TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's transfer function using BQ coefficients. In a practical sense, it allows us to draw pretty much any curve in a frequency response. I decided to split the audio range into 15 sections, defining for each -15Db..+15Db adjustment range and appropriate bandwidth to cause mild overlap. This allows both to keep the curve flat enough to not cause distortions even in extreme settings but also allows a wide range of transfer characteristics. This EQ setup is a common approach for full-range speakers, the Subwoofer specific setup is underway.
+
+| Band | Center Frequency (Hz) | Frequency Range (Hz) | Q-Factor (Approx.) |
+|------|-----------------------|----------------------|--------------------|
+| 1    | 20                    | 10–30                | 2                  |
+| 2    | 31.5                  | 20–45                | 2                  |
+| 3    | 50                    | 35–70                | 1.5                |
+| 4    | 80                    | 55–110               | 1.5                |
+| 5    | 125                   | 85–175               | 1                  |
+| 6    | 200                   | 140–280              | 1                  |
+| 7    | 315                   | 220–440              | 0.9                |
+| 8    | 500                   | 350–700              | 0.9                |
+| 9    | 800                   | 560–1120             | 0.8                |
+| 10   | 1250                  | 875–1750             | 0.8                |
+| 11   | 2000                  | 1400–2800            | 0.7                |
+| 12   | 3150                  | 2200–4400            | 0.7                |
+| 13   | 5000                  | 3500–7000            | 0.6                |
+| 14   | 8000                  | 5600–11200           | 0.6                |
+| 15   | 16000                 | 11200–20000          | 0.5                |
+
+Here are a few examples of different configs that can be done with the above setup. 
+
+<Image>
+
+### Mixer settings
+
+Mixer settings allow to mix channel signals and route them to the appropriate channel. The typical setup for the mixer is to send Left channel audio to the Left driver, and Right to the Right 
+
+<image>
+
+A common alternative is to combine both channels into true Mono (you need to reduce both to -3Db to compensate for signal doubling)
+
+<image>
+
+Of course, you can decide to use a single channel or a mixup of two, just keep in mind, that the sum on the signal may cause clipping if not compensated properly.
+
+## Known issues
+
+The current version of the driver is built in a very specific and untypical way. The DSP initialization is done on the first PLAY/RESUME event. Why is that specifically? TAS5805M requires an I2S clock to be present and stable for at least a few milliseconds before DSP settings will be considered. If controls are applied before the clock is present, they will be simply ignored. 
+
+The method described above worked well until DSP settings became dynamic. Upon reboot `alsa-restore` service will try to apply your last settings, and with the current architecture, they will be simply ignored.
+
+I'm working currently to fix this bug in either
+
+# TODO
+
+[ ] Spread spectrum switch
+[ ] Power testing for switching frequency, modulation, and output filters
+[ ] specific recommendations for my boards 
+[ ] Fix the bug with `alsa-restore` service not working
 
 ## References
 
