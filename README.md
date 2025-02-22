@@ -98,13 +98,16 @@ Now quick test if the audio is functional
 speaker-test -t sine -f 500 -c 2
 ```
 
-And finally, I can hear a beeping sound in both speakers. Hooray!
+Finally, I can hear a beeping sound on both speakers. Hooray!
 
 Alsa should give you baseline controls as well
 
-<image>
+```
+alsamixer
+```
+![image](https://github.com/user-attachments/assets/58c44fbe-2532-4ca3-b89e-1d676f43647b)
 
-### Digital volume and Analog gain
+### Digital Volume and Analog Gain
 
 > A combination of digital gain and analog gain is used to provide the overall gain of the speaker amplifier. The total amplifier gain consists of the digital gain and the analog gain from the input of the analog modulator to the output of the speaker amplifier power stage.
 
@@ -114,44 +117,49 @@ Change analog gain via register 0x54, AGAIN[4:0] which supports 32 steps analog 
 These analog gain settings ensure that the output signal is not clipped at different PVDD levels. 0dBFS output
 corresponds to 29.5-V peak output voltage. 
 
-| Binary | dB Value | Output Voltage (V) |
-|--------|----------|--------------------|
-| 0      | 0        | 29.5               |
-| 1      | -0.5     | 27.92              |
-| 10     | -1       | 26.42              |
-| 11     | -1.5     | 25                 |
-| 100    | -2       | 23.65              |
-| 101    | -2.5     | 22.38              |
-| 110    | -3       | 21.17              |
-| 111    | -3.5     | 20.02              |
-| 1000   | -4       | 18.94              |
-| 1001   | -4.5     | 17.91              |
-| 1010   | -5       | 16.94              |
-| 1011   | -5.5     | 16.02              |
-| 1100   | -6       | 15.15              |
-| 1101   | -6.5     | 14.33              |
-| 1110   | -7       | 13.55              |
-| 1111   | -7.5     | 12.82              |
-| 10000  | -8       | 12.13              |
-| 10001  | -8.5     | 11.48              |
-| 10010  | -9       | 10.87              |
-| 10011  | -9.5     | 10.29              |
-| 10100  | -10      | 9.75               |
-| 10101  | -10.5    | 9.24               |
-| 10110  | -11      | 8.76               |
-| 10111  | -11.5    | 8.3                |
-| 11000  | -12      | 7.87               |
-| 11001  | -12.5    | 7.46               |
-| 11010  | -13      | 7.08               |
-| 11011  | -13.5    | 6.71               |
-| 11100  | -14      | 6.37               |
-| 11101  | -14.5    | 6.04               |
-| 11110  | -15      | 5.73               |
-| 11111  | -15.5    | 4.95               |
+<details>
+<summary>Analog gain</summary>
+
+| Binary | dB Value | Output Voltage (V) | Alsa display value |
+|--------|----------|--------------------|--------------------|
+| 0      | 0        | 29.5               | 100                |
+| 1      | -0.5     | 27.92              | 97                 |
+| 10     | -1       | 26.42              | 94                 |
+| 11     | -1.5     | 25                 | 90                 |
+| 100    | -2       | 23.65              | 87                 |
+| 101    | -2.5     | 22.38              | 84                 |
+| 110    | -3       | 21.17              | 81                 |
+| 111    | -3.5     | 20.02              | 77                 |
+| 1000   | -4       | 18.94              | 74                 |
+| 1001   | -4.5     | 17.91              | 71                 |
+| 1010   | -5       | 16.94              | 68                 |
+| 1011   | -5.5     | 16.02              | 65                 |
+| 1100   | -6       | 15.15              | 61                 |
+| 1101   | -6.5     | 14.33              | 58                 |
+| 1110   | -7       | 13.55              | 55                 |
+| 1111   | -7.5     | 12.82              | 52                 |
+| 10000  | -8       | 12.13              | 48                 |
+| 10001  | -8.5     | 11.48              | 45                 |
+| 10010  | -9       | 10.87              | 42                 |
+| 10011  | -9.5     | 10.29              | 39                 |
+| 10100  | -10      | 9.75               | 35                 |
+| 10101  | -10.5    | 9.24               | 32                 |
+| 10110  | -11      | 8.76               | 29                 |
+| 10111  | -11.5    | 8.3                | 26                 |
+| 11000  | -12      | 7.87               | 23                 |
+| 11001  | -12.5    | 7.46               | 19                 |
+| 11010  | -13      | 7.08               | 16                 |
+| 11011  | -13.5    | 6.71               | 13                 |
+| 11100  | -14      | 6.37               | 10                 |
+| 11101  | -14.5    | 6.04               | 6                  |
+| 11110  | -15      | 5.73               | 3                  |
+| 11111  | -15.5    | 4.95               | 0                  |
+
+</details>
 
 Having analog gain set at the appropriate level, the digital volume should be used to set the desired audio volume. Keep in mind, it is **perfectly safe to set the analog gain at a lower level**, further avoiding clipping (and effectively limiting output power) and reducing digital distortions caused by low digital gain. 
 
-### Modulation scheme
+### Driver Modulation scheme
 
 Both modulation scheme and switching frequency have an impact on power consumption and losses. 
 
@@ -185,7 +193,7 @@ low switching frequency (For example, Fsw = 384 kHz) with proper LC filter (15 �
 
 Not yet implemented:
 
->1) With Hybrid Modulation, users need to input the system's PVDD value via device development App.
+> 1) With Hybrid Modulation, users need to input the system's PVDD value via device development App.
 > 2) With Hybrid Modulation, Change device state from Deep Sleep Mode to Play Mode, specific sequence is required:
 > 1. Set device's PWM Modulation to BD or 1SPW mode via Register (Book0/Page0/Register0x02h, Bit [1:0]).
 > 2. Set device to Hi-Z state via Register (Book0/Page0/Register0x03h, Bit [1:0]).
@@ -194,7 +202,7 @@ Not yet implemented:
 > 5. Delay 15ms.
 > 6. Set device to Play state via Register (Book0/Page0/Register0x03h, Bit [1:0])
 
-### Switching frequency
+### Driver Switching frequency
 
 TAS5805M supports different switching frequencies, which mostly affect the balance between output filter losses and EMI noise. Below is the recommendation from TI
 
@@ -210,22 +218,33 @@ TAS5805M supports different switching frequencies, which mostly affect the balan
 
 TAS5805M has a bridge mode of operation, that causes both output drivers to synchronize and push out the same audio with double the power.  In that case single speaker is expected to be connected across channels, so remember to reconnect speakers if you're changing to bridge mode. 
 
-<image>
+|  | BTL | PBTL |
+|---|---|---|
+| Descriotion | Bridge Tied Load, Stereo | Parallel Bridge Tied Load, Mono |
+| Rated Power | 2×23W (8-Ω, 21 V, THD+N=1%) | 45W (4-Ω, 21 V, THD+N=1%) |
+| Schematics | ![image](https://github.com/sonocotta/esp32-audio-dock/assets/5459747/e7ada8c0-c906-4c08-ae99-be9dfe907574) | ![image](https://github.com/sonocotta/esp32-audio-dock/assets/5459747/55f5315a-03eb-47c8-9aea-51e3eb3757fe)
+| Speaker Connection | ![image](https://github.com/user-attachments/assets/8e5e9c38-2696-419b-9c5b-d278c655b0db) | ![image](https://github.com/user-attachments/assets/8aba6273-84c4-45a8-9808-93317d794a44)
 
 ## Basic mode disclaimer
 
 The basic method sets all DSP parameters into a disabled state, so at this point, you're using DAC in its most basic function. Currently, the only way to play with TAS5805M DSP is to buy an evaluation board from TI ($250+) and request TI PurePath software to interact with it. not only it is incredibly impractical, but you don't get to change settings on the fly as soon as you disconnect your PC from the evaluation board, since you can only take a snapshot of your settings and stick to them forever. Bugger!
 
-<PurePath screens>
+<details>
+  <summary>PurePath screens</summary>
+  ![image](https://github.com/user-attachments/assets/a324c8b1-c95f-48c9-99c4-a934ab2a7527)
+  ![image](https://github.com/user-attachments/assets/77234d68-d83b-4766-aa4e-1ab4c6fae852)
+  ![image](https://github.com/user-attachments/assets/f36ff5cf-da54-4bc7-9dc7-cb7e6df62cbd)
+  ![image](https://github.com/user-attachments/assets/c6fa2f51-e50d-4753-aae9-f064f7f60d7d)
+</details>
 
-The work I'm trying to perform is to 
+The work I'm trying to perform is to:
 
 - Allow settings snapshots to be applied on the board's startup without an evaluation kit, so at least you can transfer your carefully crafted settings into a working Raspberry setup
 - Allow some settings to be changed on the fly as if you had an evaluation kit all the time.
 
 ## Kernel module - pre-defined setup
 
-As said above you can create a custom DSP config in the Ti PurePath application, which I did and included in the [startup](/startup) folder. Some of them are subwoofer configs, and some specific EQ settings fit my taste. I never intended to cover every possible scenario, but rather provide few examples starting from those I use most often. I encourage everyone to create their own configs in PurePath and include them in the startup folder as well.
+As said above you can create a custom DSP config in the TI PurePath application, which I did and included in the [startup](/startup) folder. Some of them are subwoofer configs, and some specific EQ settings fit my taste. I never intended to cover every possible scenario, but rather provide a few examples starting from those I use most often. I encourage everyone to create their own configs in PurePath and include them in the startup folder as well.
 
 First, let's enable the  config we selected in the `tas5805m.c` file. Uncomment two lines like in the example below
 
@@ -248,7 +267,7 @@ make all && sudo make install && sudo reboot
 
 The audio changes will be applied after reboot, also you should find basic settings in the Alsa
 
-<alsa screenshot>
+![image](https://github.com/user-attachments/assets/741ba389-fc29-48c2-9b65-4a1d1932a5b1)
 
 ## Kernel module - change settings on the fly
 
@@ -268,7 +287,7 @@ make all && sudo make install && sudo reboot
 
 After reboot you should be able to see the following settings in the Alsa. Let's go through them one by one
 
-<Alsa screenshot>
+![image](https://github.com/user-attachments/assets/217430fa-6c53-4b25-8143-d74a6e383de3)
 
 ### EQ controls
 
@@ -294,17 +313,19 @@ TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's t
 
 Here are a few examples of different configs that can be done with the above setup. 
 
-<Image>
+<PurePath Image>
 
 ### Mixer settings
 
 Mixer settings allow to mix channel signals and route them to the appropriate channel. The typical setup for the mixer is to send Left channel audio to the Left driver, and Right to the Right 
 
-<image>
+TODO: add mixer values table
+
+![image](https://github.com/user-attachments/assets/52e48a9d-1d99-4751-8d60-8058a9ad1ece)
 
 A common alternative is to combine both channels into true Mono (you need to reduce both to -3Db to compensate for signal doubling)
 
-<image>
+![image](https://github.com/user-attachments/assets/47f862e7-60bc-4533-b9cf-fe64d089dcb2)
 
 Of course, you can decide to use a single channel or a mixup of two, just keep in mind, that the sum on the signal may cause clipping if not compensated properly.
 
