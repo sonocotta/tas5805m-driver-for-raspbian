@@ -321,11 +321,11 @@ Mixer settings allow to mix channel signals and route them to the appropriate ch
 
 TODO: add mixer values table
 
-![image](https://github.com/user-attachments/assets/52e48a9d-1d99-4751-8d60-8058a9ad1ece)
+![image](https://github.com/user-attachments/assets/d1a24adf-a417-48a1-b35d-39ee9d199587)
 
 A common alternative is to combine both channels into true Mono (you need to reduce both to -3Db to compensate for signal doubling)
 
-![image](https://github.com/user-attachments/assets/47f862e7-60bc-4533-b9cf-fe64d089dcb2)
+![image](https://github.com/user-attachments/assets/390d1ecb-e3cd-4fff-8951-80fc318ec7d9)
 
 Of course, you can decide to use a single channel or a mixup of two, just keep in mind, that the sum on the signal may cause clipping if not compensated properly.
 
