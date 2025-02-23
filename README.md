@@ -229,13 +229,10 @@ TAS5805M has a bridge mode of operation, that causes both output drivers to sync
 
 The basic method sets all DSP parameters into a disabled state, so at this point, you're using DAC in its most basic function. Currently, the only way to play with TAS5805M DSP is to buy an evaluation board from TI ($250+) and request TI PurePath software to interact with it. Not only is it incredibly impractical, but you don't get to change settings on the fly as soon as you disconnect your PC from the evaluation board, since you can only take a snapshot of your settings and stick to them forever. Bugger!
 
-<details>
-  <summary>PurePath screens</summary>
   ![image](https://github.com/user-attachments/assets/a324c8b1-c95f-48c9-99c4-a934ab2a7527)
   ![image](https://github.com/user-attachments/assets/77234d68-d83b-4766-aa4e-1ab4c6fae852)
   ![image](https://github.com/user-attachments/assets/f36ff5cf-da54-4bc7-9dc7-cb7e6df62cbd)
   ![image](https://github.com/user-attachments/assets/c6fa2f51-e50d-4753-aae9-f064f7f60d7d)
-</details>
 
 The work I'm trying to perform is to:
 
@@ -311,15 +308,12 @@ TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's t
 | 14   | 8000                  | 5600–11200           | 0.6                |
 | 15   | 16000                 | 11200–20000          | 0.5                |
 
-Here are a few examples of different configs that can be done with the above setup. 
+Here are a few examples of different configurations that can be created with the above setup. 
 
-<details>
-  <summary>PurePath screens</summary>
   ![image](https://github.com/user-attachments/assets/91f360fa-7e2a-4ca8-8b72-4ed7830bf7f7)
   ![image](https://github.com/user-attachments/assets/15164675-8899-44b7-a551-0585a2a7fd8c)
   ![image](https://github.com/user-attachments/assets/31f17a19-9dbe-4e9e-947e-0cbcccbf218c)
   ![image](https://github.com/user-attachments/assets/c0445bd6-29f6-44d0-9632-14becc1de35e)
-</details>
 
 ### Mixer settings
 
