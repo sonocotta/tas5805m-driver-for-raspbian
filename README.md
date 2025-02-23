@@ -62,7 +62,7 @@ You may also comment out built-in audio and HDMI if you're running headless
 #dtoverlay=vc4-kms-v3d
 ```
 
-You need to reboot for changes to take effect, but this will not work just yet. We are referencing the `tas5805m` kernel module there, and this one is not there yet. Therefore we will build it on the same host using current kernel sources that we just pulled 
+You need to reboot for changes to take effect, but this will not work just yet. We are referencing the `tas5805m` kernel module there, and this one is not there yet. Therefore we will build it on the same host using the current kernel sources that we just pulled 
 
 ## Kernel module - basic setup
 
@@ -227,7 +227,7 @@ TAS5805M has a bridge mode of operation, that causes both output drivers to sync
 
 ## Basic mode disclaimer
 
-The basic method sets all DSP parameters into a disabled state, so at this point, you're using DAC in its most basic function. Currently, the only way to play with TAS5805M DSP is to buy an evaluation board from TI ($250+) and request TI PurePath software to interact with it. not only it is incredibly impractical, but you don't get to change settings on the fly as soon as you disconnect your PC from the evaluation board, since you can only take a snapshot of your settings and stick to them forever. Bugger!
+The basic method sets all DSP parameters into a disabled state, so at this point, you're using DAC in its most basic function. Currently, the only way to play with TAS5805M DSP is to buy an evaluation board from TI ($250+) and request TI PurePath software to interact with it. Not only is it incredibly impractical, but you don't get to change settings on the fly as soon as you disconnect your PC from the evaluation board, since you can only take a snapshot of your settings and stick to them forever. Bugger!
 
 <details>
   <summary>PurePath screens</summary>
@@ -313,7 +313,13 @@ TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's t
 
 Here are a few examples of different configs that can be done with the above setup. 
 
-<PurePath Image>
+<details>
+  <summary>PurePath screens</summary>
+  ![image](https://github.com/user-attachments/assets/91f360fa-7e2a-4ca8-8b72-4ed7830bf7f7)
+  ![image](https://github.com/user-attachments/assets/15164675-8899-44b7-a551-0585a2a7fd8c)
+  ![image](https://github.com/user-attachments/assets/31f17a19-9dbe-4e9e-947e-0cbcccbf218c)
+  ![image](https://github.com/user-attachments/assets/c0445bd6-29f6-44d0-9632-14becc1de35e)
+</details>
 
 ### Mixer settings
 
