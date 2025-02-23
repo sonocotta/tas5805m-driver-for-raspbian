@@ -24,7 +24,8 @@
 #define TAS5805M_REG_CHAN_FAULT      0x70
 #define TAS5805M_REG_GLOBAL_FAULT1   0x71
 #define TAS5805M_REG_GLOBAL_FAULT2   0x72
-#define TAS5805M_REG_FAULT       0x78
+#define TAS5805M_REG_FAULT           0x78
+#define TAS5805M_REG_CLKDET_STATUS   0x39
 
 /* DEVICE_CTRL_2 register values */
 #define TAS5805M_DCTRL2_MODE_DEEP_SLEEP 0x00
@@ -52,7 +53,7 @@
 #define TAS5805M_REG_RIGHT_TO_RIGHT_GAIN 0x24
 
 #define TAS5805M_MIXER_MIN_DB -110
-#define TAS5805M_MIXER_MAX_DB 15
+#define TAS5805M_MIXER_MAX_DB 0
 
 enum {
     NORMAL_MODE = 0,  /* Normal mode (bit 1 = 0) */
@@ -83,6 +84,8 @@ static const char * const modulation_mode_text[] = {
 static const char * const switch_freq_text[] = {
     "768K",  /* Text for value 0 */
     "384K",   /* Text for value 1 */
+    "480K",   /* Text for value 2 */
+    "576K",   /* Text for value 3 */
 };
 
 #endif // _TAS5805M_H

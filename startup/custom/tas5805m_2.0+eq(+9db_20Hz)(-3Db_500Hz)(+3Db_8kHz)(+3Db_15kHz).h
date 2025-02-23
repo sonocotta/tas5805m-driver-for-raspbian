@@ -11,12 +11,6 @@ extern "C" {
 
 static const struct reg_sequence tas5805m_init_sequence[] = {
 // RESET
-    { TAS5805M_REG_PAGE_SET, 0x00 },
-    { TAS5805M_REG_BOOK_SET, 0x00 },
-    { 0x03, 0x02 },
-    { 0x01, 0x11 },
-    { 0x03, 0x02 },
-    { TAS5805M_CFG_META_DELAY, 5 },
     { 0x03, 0x00 },
     { 0x46, 0x01 },
     { 0x03, 0x02 },
