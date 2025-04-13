@@ -34,37 +34,6 @@
 #include "tas5805m.h"
 #include "eq/tas5805m_eq.h"
 
-#if defined(TAS5805M_DSP_CUSTOM)
-    // pick one of the following configurations 
-    // you may provide your own configuration exported from the Ti's PurePath Console
-    // DSP ALSA controls will be disabled in that case
-
-    // #pragma message("tas5805m_2.0+eq(+9db_20Hz)(-1Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
-    // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-1Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
-    // #pragma message("tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
-    // #include "startup/custom/tas5805m_2.0+eq(+9db_20Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
-    // #pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
-    // #include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
-    #pragma message("tas5805m_2.0+basic config is used")
-    #include "startup/tas5805m_2.0+basic.h"
-    // #pragma message("tas5805m_1.0+basic config is used")
-    // #include "startup/tas5805m_1.0+basic.h"
-    // #pragma message("tas5805m_0.1+eq_40Hz_cutoff config is used")
-    // #include "startup/tas5805m_0.1+eq_40Hz_cutoff.h"
-    // #pragma message("tas5805m_0.1+eq_60Hz_cutoff config is used")
-    // #include "startup/tas5805m_0.1+eq_60Hz_cutoff.h"
-    // #pragma message("tas5805m_0.1+eq_100Hz_cutoff config is used")
-    // #include "startup/tas5805m_0.1+eq_100Hz_cutoff.h"// works: yes // <- purepath (PBTL) subwoofer mode 
-    // #pragma message("tas5805m_1.1+eq_60Hz_cutoff+mono config is used")
-    // #include "startup/tas5805m_1.1+eq_60Hz_cutoff+mono.h"
-    // #pragma message("tas5805m_1.1+eq_60Hz_cutoff+left config is used")
-    // #include "startup/tas5805m_1.1+eq_60Hz_cutoff+left.h"
-    // #pragma message("tas5805m_1.1+eq_60Hz_cutoff+right config is used") 
-    // #include "startup/tas5805m_1.1+eq_60Hz_cutoff+right.h"
-#else
-    #include "startup/tas5805m_2.0+minimal.h"
-#endif
-
 /* This sequence of register writes must always be sent, prior to the
  * 5ms delay while we wait for the DSP to boot.
  */
@@ -82,6 +51,29 @@ static const uint8_t tas5805m_dsp_cfg_preboot[] = {
     0x03, 0x02,
 };
 
+static const struct reg_sequence tas5805m_init_sequence[] = {
+// RESET
+	{ 0x03, 0x00 },
+	{ 0x46, 0x01 },
+	{ 0x03, 0x02 },
+	{ 0x61, 0x0b },
+	{ 0x60, 0x01 },
+	{ 0x7d, 0x11 },
+	{ 0x7e, 0xff },
+	{ TAS5805M_REG_PAGE_SET, 0x01 },
+	{ 0x51, 0x05 },
+// Register Tuning
+	{ TAS5805M_REG_PAGE_SET, 0x00 },
+	{ TAS5805M_REG_BOOK_SET, 0x00 },
+	{ 0x02, 0x00 },
+	{ 0x30, 0x00 },
+	{ 0x4c, 0x30 },
+	{ 0x53, 0x00 },
+	{ 0x54, 0x00 },
+	{ 0x03, 0x03 },
+	{ 0x78, 0x80 },
+};
+	
 static const uint32_t tas5805m_volume[] = {
 	0x0000001B, /*   0, -110dB */ 0x0000001E, /*   1, -109dB */
 	0x00000021, /*   2, -108dB */ 0x00000025, /*   3, -107dB */
@@ -258,7 +250,7 @@ static void tas5805m_refresh(struct tas5805m_priv *tas5805m)
 {
 	struct regmap *rm = tas5805m->regmap;
 
-	dev_dbg(&tas5805m->i2c->dev, "refresh: is_muted=%d, vol=%d/%d\n",
+	dev_info(&tas5805m->i2c->dev, "%s: is_muted=%d, vol=%d/%d\n", __FUNCTION__,
 		tas5805m->is_muted, tas5805m->vol[0], tas5805m->vol[1]);
 
 	regmap_write(rm, TAS5805M_REG_PAGE_SET, 0x00);
@@ -331,7 +323,7 @@ static int tas5805m_vol_put(struct snd_kcontrol *kcontrol,
 	    tas5805m->vol[1] != ucontrol->value.integer.value[1]) {
 		tas5805m->vol[0] = ucontrol->value.integer.value[0];
 		tas5805m->vol[1] = ucontrol->value.integer.value[1];
-		dev_dbg(component->dev, "set vol=%d/%d (is_powered=%d)\n",
+		dev_info(component->dev, "%s: set vol=%d/%d (is_powered=%d)", __FUNCTION__, 
 			tas5805m->vol[0], tas5805m->vol[1],
 			tas5805m->is_powered);
 		if (tas5805m->is_powered)
@@ -447,7 +439,6 @@ MIXER_CONTROL_DECL(3, right_to_right_mixer, TAS5805M_REG_RIGHT_TO_RIGHT_GAIN, "R
 static int eq_band_##freq##_get(struct snd_kcontrol *kcontrol,              \
                       struct snd_ctl_elem_value *ucontrol) {                \
     ucontrol->value.integer.value[0] = kcontrol->private_value;             \
-    /* printk(KERN_DEBUG "tas5805m: EQ get %d %d\n", ix, (int)(kcontrol->private_value)); */ \
     return 0;                                                               \
 }                                                                           \
                                                                             \
@@ -613,7 +604,7 @@ static int tas5805m_trigger(struct snd_pcm_substream *substream, int cmd,
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		dev_dbg(component->dev, "DAC clock start\n");
+		dev_info(component->dev, "%s: DAC clock start", __FUNCTION__);
 		schedule_work(&tas5805m->work);
 		break;
 
@@ -635,7 +626,7 @@ static void tas5805m_do_work(struct work_struct *work)
 	       container_of(work, struct tas5805m_priv, work);
 	struct regmap *rm = tas5805m->regmap;
 
-	dev_dbg(&tas5805m->i2c->dev, "DSP startup\n");
+	dev_info(&tas5805m->i2c->dev, "%s: DSP startup", __FUNCTION__);
 
 	mutex_lock(&tas5805m->lock);
 	/* We mustn't issue any I2C transactions until the I2S
@@ -666,41 +657,41 @@ static void tas5805m_check_faults(struct snd_soc_component *component)
     ret = regmap_read(rm, TAS5805M_REG_CHAN_FAULT, &chan);
     if (chan) {
         if (chan & (1 << 0))  
-            printk(KERN_WARNING "tas5805m: Right channel over current fault");
+            printk(KERN_WARNING "%s: Right channel over current fault", __FUNCTION__);
 
         if (chan & (1 << 1))
-            printk(KERN_WARNING "tas5805m: Left channel over current fault");
+            printk(KERN_WARNING "%s: Left channel over current fault", __FUNCTION__);
 
         if (chan & (1 << 2)) 
-            printk(KERN_WARNING "tas5805m: Right channel DC fault");
+            printk(KERN_WARNING "%s: Right channel DC fault", __FUNCTION__);
 
         if (chan & (1 << 3))  
-            printk(KERN_WARNING "tas5805m: Left channel DC fault");
+            printk(KERN_WARNING "%s: Left channel DC fault", __FUNCTION__);
     }
 
     ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT1, &global1);
     if (global1) {
         if (global1 & (1 << 0))  
-            printk(KERN_WARNING "tas5805m: PVDD UV fault");
+            printk(KERN_WARNING "%s: PVDD UV fault", __FUNCTION__);
 
         if (global1 & (1 << 1))
-            printk(KERN_WARNING "tas5805m: PVDD OV fault");
+            printk(KERN_WARNING "%s: PVDD OV fault", __FUNCTION__);
 
         if (global1 & (1 << 2)) 
-            printk(KERN_DEBUG "tas5805m: Clock fault");
+            printk(KERN_DEBUG "%s: Clock fault", __FUNCTION__);
 
         if (global1 & (1 << 6))  
-            printk(KERN_WARNING "tas5805m: The recent BQ is written failed");
+            printk(KERN_WARNING "%s: The recent BQ is written failed", __FUNCTION__);
 
         if (global1 & (1 << 7))  
-            printk(KERN_WARNING "tas5805m: Indicate OTP CRC check error");
+            printk(KERN_WARNING "%s: Indicate OTP CRC check error", __FUNCTION__);
 
     }
 
     ret = regmap_read(rm, TAS5805M_REG_GLOBAL_FAULT2, &global2);
     if (global2) {
         if (global2 & (1 << 0))  
-            printk(KERN_WARNING "tas5805m: Over temperature shut down fault");
+            printk(KERN_WARNING "%s: Over temperature shut down fault", __FUNCTION__);
     }
 
     ret = regmap_write(rm, TAS5805M_REG_FAULT, TAS5805M_ANALOG_FAULT_CLEAR);    // Is necessary for compatibility with TAS5828m
@@ -716,7 +707,7 @@ static int tas5805m_dac_event(struct snd_soc_dapm_widget *w,
 	struct regmap *rm = tas5805m->regmap;
 
 	if (event & SND_SOC_DAPM_PRE_PMD) {
-		dev_dbg(component->dev, "DSP shutdown\n");
+		dev_info(component->dev, "%s: DSP shutdown", __FUNCTION__);
 		cancel_work_sync(&tas5805m->work);
 
 		mutex_lock(&tas5805m->lock);
@@ -746,6 +737,7 @@ static const struct snd_soc_dapm_widget tas5805m_dapm_widgets[] = {
 };
 
 static const struct snd_soc_component_driver soc_codec_dev_tas5805m = {
+	.name 				= "TAS5805M",
 	.controls		    = tas5805m_snd_controls,
 	.num_controls		= ARRAY_SIZE(tas5805m_snd_controls),
 	.dapm_widgets		= tas5805m_dapm_widgets,
@@ -763,7 +755,7 @@ static int tas5805m_mute(struct snd_soc_dai *dai, int mute, int direction)
 		snd_soc_component_get_drvdata(component);
 
 	mutex_lock(&tas5805m->lock);
-	dev_dbg(component->dev, "set mute=%d (is_powered=%d)\n",
+	dev_info(component->dev, "%s: set mute=%d (is_powered=%d)", __FUNCTION__,
 		mute, tas5805m->is_powered);
 
 	tas5805m->is_muted = mute;
@@ -803,6 +795,66 @@ static const struct regmap_config tas5805m_regmap = {
 	.cache_type	= REGCACHE_NONE,
 };
 
+static int tas5805m_load_config(struct device *dev, uint8_t *dsp_cfg_data, int dsp_cfg_len, uint8_t **dsp_cfg_data_parsed, size_t *parsed_len) {
+    if (!dsp_cfg_data || dsp_cfg_len <= 0) {
+        dev_err(dev, "%s: Invalid DSP configuration data\n", __FUNCTION__);
+        return -1;
+    }
+
+    size_t capacity = 32; // Initial capacity for the parsed data buffer
+    *dsp_cfg_data_parsed = kmalloc(capacity * sizeof(uint8_t), GFP_KERNEL);
+    if (!*dsp_cfg_data_parsed) {
+		dev_err(dev, "%s: DSP sequence memory allocation failed", __FUNCTION__);
+        return -ENOMEM;
+    }
+
+    *parsed_len = 0;
+
+    // Parse the buffer line by line
+    char *line = strsep((char **)&dsp_cfg_data, "\n");
+    while (line) {
+        // Trim leading and trailing whitespace
+        while (isspace(*line)) line++;
+
+        char *end = line + strlen(line) - 1;
+        while (end > line && isspace(*end)) *end-- = '\0';
+
+        // Skip comments and empty lines
+        if (line[0] == '#' || line[0] == '\0') {
+            line = strsep((char **)&dsp_cfg_data, "\n");
+            continue;
+        }
+
+        // Parse 'w' commands (write commands)
+        if (line[0] == 'w') {
+            uint8_t reg, val;
+            if (sscanf(line, "w %*x %hhx %hhx", &reg, &val) == 2) {
+                // Resize the array if needed
+                if (*parsed_len + 2 > capacity) {
+                    capacity *= 2;
+                    uint8_t *new_data = krealloc(*dsp_cfg_data_parsed, capacity * sizeof(uint8_t), GFP_KERNEL);
+                    if (!new_data) {
+						dev_err(dev, "%s: Failed to reallocate memory", __FUNCTION__);
+                        kfree(*dsp_cfg_data_parsed);
+                        return -ENOMEM;
+                    }
+                    *dsp_cfg_data_parsed = new_data;
+                }
+
+				// Add the parsed register and value to the buffer
+				(*dsp_cfg_data_parsed)[*parsed_len] = reg;
+				(*dsp_cfg_data_parsed)[*parsed_len + 1] = val;
+				*parsed_len += 2;
+            }
+        }
+
+        // Skip unsupported commands (e.g., 'd' for delays)
+        line = strsep((char **)&dsp_cfg_data, "\n");
+    }
+
+    return 0;
+}
+
 static int tas5805m_i2c_probe(struct i2c_client *i2c)
 {
 	struct device *dev = &i2c->dev;
@@ -813,12 +865,12 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	const struct firmware *fw;
 	int ret;
 
-    printk(KERN_DEBUG "tas5805m_i2c_probe: Probing the I2C device\n");
+    dev_info(dev, "%s: Probing the I2C device", __FUNCTION__);
 
 	regmap = devm_regmap_init_i2c(i2c, &tas5805m_regmap);
 	if (IS_ERR(regmap)) {
 		ret = PTR_ERR(regmap);
-		dev_err(dev, "unable to allocate register map: %d\n", ret);
+		dev_err(dev, "%s: unable to allocate register map: %d", __FUNCTION__, ret);
 		return ret;
 	}
 
@@ -829,16 +881,17 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	tas5805m->i2c = i2c;
 	tas5805m->pvdd = devm_regulator_get(dev, "pvdd");
 	if (IS_ERR(tas5805m->pvdd)) {
-		dev_err(dev, "failed to get pvdd supply: %ld\n",
+		dev_err(dev, "%s: failed to get pvdd supply: %ld", __FUNCTION__,
 			PTR_ERR(tas5805m->pvdd));
 		return PTR_ERR(tas5805m->pvdd);
 	}
 
 	dev_set_drvdata(dev, tas5805m);
 	tas5805m->regmap = regmap;
+
 	tas5805m->gpio_pdn_n = devm_gpiod_get(dev, "pdn", GPIOD_OUT_LOW);
 	if (IS_ERR(tas5805m->gpio_pdn_n)) {
-		dev_err(dev, "error requesting PDN gpio: %ld\n",
+		dev_err(dev, "%s: error requesting PDN gpio: %ld", __FUNCTION__,
 			PTR_ERR(tas5805m->gpio_pdn_n));
 		return PTR_ERR(tas5805m->gpio_pdn_n);
 	}
@@ -851,15 +904,25 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	 * The fixed portion of PPC3's output prior to the 5ms delay
 	 * should be omitted.
 	 */
-	if (!device_property_read_string(dev, "ti,dsp-config-name", &config_name)) 
-    {
-        printk(KERN_WARNING "dsp-config-name is not set, using default config\n");
-    
-        size_t tas5805m_init_sequence_len = sizeof(tas5805m_init_sequence) / sizeof(tas5805m_init_sequence[0]);
+	ret = device_property_read_string(dev, "ti,dsp-config-name", &config_name);
+	if (ret) {
+		dev_err(dev, "%s: Failed to read property 'ti,dsp-config-name': %d", __FUNCTION__, ret);
+		return -EINVAL;
+	} 
+		
+	dev_info(dev, "%s: ti,dsp-config-name: %s", __FUNCTION__, config_name);
+	snprintf(filename, sizeof(filename), "tas5805m_dsp_%s.cfg", config_name);
+	dev_info(dev, "%s: Loading firmware: %s", __FUNCTION__, filename);
+
+	ret = request_firmware(&fw, filename, dev);
+	if (ret) {
+		printk(KERN_WARNING "%s: Failed to load firmware: %d, loading default config instead", __FUNCTION__, ret);
+		
+		size_t tas5805m_init_sequence_len = sizeof(tas5805m_init_sequence) / sizeof(tas5805m_init_sequence[0]);
         tas5805m->dsp_cfg_len = tas5805m_init_sequence_len * 2;
         tas5805m->dsp_cfg_data = devm_kmalloc(dev, tas5805m->dsp_cfg_len, GFP_KERNEL);
         if (!tas5805m->dsp_cfg_data) {
-            printk(KERN_ERR "tas5805m_i2c_probe: firmware is not loaded, using default config\n");
+            dev_err(dev, "%s: firmware is not loaded, using default config", __FUNCTION__);
         } else {
         
             for (size_t i = 0; i < tas5805m_init_sequence_len; i++) {
@@ -867,30 +930,29 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
                 tas5805m->dsp_cfg_data[2 * i + 1] = tas5805m_init_sequence[i].def; 
             }
 
-            printk(KERN_INFO "tas5805m_i2c_probe: Loaded %d register values\n", tas5805m->dsp_cfg_len / 2);
+            dev_info(dev, "%s: Loaded %d register values", __FUNCTION__, tas5805m->dsp_cfg_len / 2);
         }
-    } else {
-        snprintf(filename, sizeof(filename), "tas5805m_dsp_%s.bin",
-            config_name);
-        ret = request_firmware(&fw, filename, dev);
-        if (ret)
-            return ret;
+	} else {
 
-        if ((fw->size < 2) || (fw->size & 1)) {
-            dev_err(dev, "firmware is invalid\n");
-            release_firmware(fw);
-            return -EINVAL;
-        }
+		if (fw->size < 2) {
+			dev_err(dev, "%s: Invalid firmware size: %zu", __FUNCTION__, fw->size);
+			release_firmware(fw);
+			return -EINVAL;
+		}
 
-        tas5805m->dsp_cfg_len = fw->size;
-        tas5805m->dsp_cfg_data = devm_kmemdup(dev, fw->data, fw->size, GFP_KERNEL);
-        if (!tas5805m->dsp_cfg_data) {
-            release_firmware(fw);
-            return -ENOMEM;
-        }
+		dev_info(dev, "%s: Firmware loaded, size: %zu bytes", __FUNCTION__, fw->size);
 
-        release_firmware(fw);
-    }
+		if (tas5805m_load_config(dev, (uint8_t *)fw->data, fw->size, &(tas5805m->dsp_cfg_data), &(tas5805m->dsp_cfg_len)) == 0) {
+			dev_info(dev, "%s: Loaded %zu register sequences", __FUNCTION__, tas5805m->dsp_cfg_len / 2);
+			// for (size_t i = 0; i < tas5805m->dsp_cfg_len; i++) {
+			// 	dev_info(dev, "\t{ 0x%02x, 0x%02x },\n", tas5805m->dsp_cfg_data[2 * i], tas5805m->dsp_cfg_data[2 * i + 1]);
+			// }
+		} else {
+			dev_err(dev, "%s: Failed to load DSP configuration", __FUNCTION__);
+		}
+
+		release_firmware(fw);
+	}
 
 	/* Do the first part of the power-on here, while we can expect
 	 * the I2S interface to be quiet. We must raise PDN# and then
@@ -907,7 +969,7 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 
 	ret = regulator_enable(tas5805m->pvdd);
 	if (ret < 0) {
-		dev_err(dev, "failed to enable pvdd: %d\n", ret);
+		dev_err(dev, "%s: failed to enable pvdd: %d", __FUNCTION__, ret);
 		return ret;
 	}
 
@@ -921,10 +983,9 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	/* Don't register through devm. We need to be able to unregister
 	 * the component prior to deasserting PDN#
 	 */
-	ret = snd_soc_register_component(dev, &soc_codec_dev_tas5805m,
-					 &tas5805m_dai, 1);
+    ret = snd_soc_register_component(dev, &soc_codec_dev_tas5805m, &tas5805m_dai, 1);
 	if (ret < 0) {
-		dev_err(dev, "unable to register codec: %d\n", ret);
+		dev_err(dev, "%s: unable to register codec: %d", __FUNCTION__, ret);
 		gpiod_set_value(tas5805m->gpio_pdn_n, 0);
 		regulator_disable(tas5805m->pvdd);
 		return ret;

@@ -31,7 +31,7 @@
 //              pvdd-supply = <&audiopwr>;
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 4 0>;
-                ti,dsp-config-name = "default";
+                ti,dsp-config-name = "2.0_basic";
             };
         };
     };
@@ -52,15 +52,16 @@
                         dai-tdm-slot-num = <2>;
                         dai-tdm-slot-width = <32>;
                 };
-            codec {
-                    sound-dai = <&codec>;
+                codec {
+                        sound-dai = <&codec>;
+                };
             };
         };
     };
-
-  };
+    
     __overrides__ {
             firmware = <&codec>,"ti,dsp-config-name";  
             i2creg = <&codec>,"reg:<>";
+            pdngpio = <&codec>,"pdn-gpios:4";
     };
 };

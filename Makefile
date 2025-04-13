@@ -19,4 +19,5 @@ clean:
 
 install:
 	sudo cp $(shell pwd)/tas5805m.ko /lib/modules/$(shell uname -r)/kernel/sound/soc/codecs/snd-soc-tas5805m.ko
+	sudo cp $(shell pwd)/startup/*.cfg /lib/firmware/
 	sudo depmod -a
