@@ -1,0 +1,490 @@
+{
+    "version": "1.3.7",
+    "settings": {
+        "configurationList": [
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "03",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "020"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "08",
+                                "mask": "ff",
+                                "data": "10",
+                                "delay": "",
+                                "comments": "Set device 1 is left channel",
+                                "$$hashKey": "021"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0a",
+                                "mask": "ff",
+                                "data": "93",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "022"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "32",
+                                "mask": "ff",
+                                "data": "81",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "023"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "35",
+                                "mask": "ff",
+                                "data": "84",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "024"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "38",
+                                "mask": "ff",
+                                "data": "20",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "025"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "40",
+                                "mask": "ff",
+                                "data": "b6",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "026"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": "Set chip in active mode",
+                                "$$hashKey": "027"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2562",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Common",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "0e",
+                                "delay": "",
+                                "comments": "Set chip in soft shutdown mode"
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Common",
+                        "deviceValue": null,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 2",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "03",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02O"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "08",
+                                "mask": "ff",
+                                "data": "20",
+                                "delay": "",
+                                "comments": "Set device2 is right channel",
+                                "$$hashKey": "02P"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0a",
+                                "mask": "ff",
+                                "data": "93",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02Q"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "35",
+                                "mask": "ff",
+                                "data": "84",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02R"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "38",
+                                "mask": "ff",
+                                "data": "20",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02S"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "40",
+                                "mask": "ff",
+                                "data": "b6",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02T"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": "Set chip in active mode",
+                                "$$hashKey": "02U"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 2 - TAS2562",
+                        "deviceValue": 2,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "case01-speaker-16bit",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "014"
+            },
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "03",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "08",
+                                "mask": "ff",
+                                "data": "1a",
+                                "delay": "",
+                                "comments": "Set device 1 is left channel"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0a",
+                                "mask": "ff",
+                                "data": "93",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "32",
+                                "mask": "ff",
+                                "data": "81",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "35",
+                                "mask": "ff",
+                                "data": "84",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "38",
+                                "mask": "ff",
+                                "data": "20",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "40",
+                                "mask": "ff",
+                                "data": "b6",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": "Set chip in active mode"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2562",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Common",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "0e",
+                                "delay": "",
+                                "comments": "Set chip in soft shutdown mode"
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Common",
+                        "deviceValue": null,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 2",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "03",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "08",
+                                "mask": "ff",
+                                "data": "2a",
+                                "delay": "",
+                                "comments": "Set device2 is right channel"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0a",
+                                "mask": "ff",
+                                "data": "93",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "35",
+                                "mask": "ff",
+                                "data": "84",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "38",
+                                "mask": "ff",
+                                "data": "20",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "40",
+                                "mask": "ff",
+                                "data": "b6",
+                                "delay": "",
+                                "comments": ""
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": "Set chip in active mode"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 2 - TAS2562",
+                        "deviceValue": 2,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "case01-speaker-32bit",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "015"
+            }
+        ],
+        "binConfig": {
+            "headerSize": 292,
+            "binaryVersion": [
+                0,
+                0,
+                1,
+                5
+            ],
+            "driverVersion": [
+                0,
+                0,
+                1,
+                1
+            ],
+            "maxConfigs": 64,
+            "maxDevice": 8,
+            "configNameLength": 64,
+            "types": {
+                "deviceType": {
+                    "availableDeviceTypes": [
+                        "Integrated",
+                        "Non Integrated"
+                    ]
+                },
+                "platformType": {
+                    "values": {
+                        "QCom": "0x01",
+                        "MTK": "0x02",
+                        "LSI": "0x03"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "deviceCount": {
+                    "values": {
+                        "1 Device": "0x01",
+                        "2 Devices": "0x02",
+                        "3 Device": "0x03",
+                        "4 Devices": "0x04",
+                        "5 Device": "0x05",
+                        "6 Devices": "0x06",
+                        "7 Devices": "0x07",
+                        "8 Devices": "0x08"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "amplifierType": {
+                    "values": {
+                        "TAS2558": "0x01",
+                        "TAS2560": "0x02",
+                        "TAS2562": "0x03",
+                        "TAS2564": "0x04",
+                        "TAS2783": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 8
+                },
+                "blockType": {
+                    "values": {
+                        "COEFF": "0x01",
+                        "POST_POWER_UP": "0x02",
+                        "PRE_SHUTDOWN": "0x03",
+                        "PRE_POWER_UP": "0x04",
+                        "POST_SHUTDOWN": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "subBlockType": {
+                    "values": {
+                        "SINGLE_BYTE_WRITES": "0x01",
+                        "BURST_WRITES": "0x02",
+                        "DELAY": "0x03",
+                        "FIELD_WRITES": "0x04"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                }
+            }
+        },
+        "platformType": "QCom",
+        "devicesCount": "2 Devices",
+        "amplifierType": [
+            "TAS2562",
+            "TAS2562"
+        ],
+        "deviceType": "Non Integrated"
+    }
+}

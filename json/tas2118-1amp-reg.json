@@ -1,0 +1,746 @@
+{
+    "version": "1.4.1",
+    "settings": {
+        "configurationList": [
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "01",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01U"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0",
+                                "mask": "ff",
+                                "data": "",
+                                "delay": 5,
+                                "comments": "",
+                                "$$hashKey": "01V"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "03",
+                                "mask": "ff",
+                                "data": "c0",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01W"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "04",
+                                "mask": "ff",
+                                "data": "8c",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01X"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "05",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01Y"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "06",
+                                "mask": "ff",
+                                "data": "04",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01Z"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "07",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "020"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "08",
+                                "mask": "ff",
+                                "data": "82",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "021"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "09",
+                                "mask": "ff",
+                                "data": "1a",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "022"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "0a",
+                                "mask": "ff",
+                                "data": "10",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "023"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "0b",
+                                "mask": "ff",
+                                "data": "02",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "024"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "0c",
+                                "mask": "ff",
+                                "data": "13",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "025"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "0f",
+                                "mask": "ff",
+                                "data": "04",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "026"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "10",
+                                "mask": "ff",
+                                "data": "05",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "027"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "11",
+                                "mask": "ff",
+                                "data": "07",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "028"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "12",
+                                "mask": "ff",
+                                "data": "06",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "029"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "13",
+                                "mask": "ff",
+                                "data": "c0",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02A"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "15",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02B"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "17",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02C"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "18",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02D"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "1b",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02E"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "1c",
+                                "mask": "ff",
+                                "data": "20",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02F"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "1d",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02G"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "1e",
+                                "mask": "ff",
+                                "data": "60",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02H"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "21",
+                                "mask": "ff",
+                                "data": "12",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02I"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "22",
+                                "mask": "ff",
+                                "data": "23",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02J"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "24",
+                                "mask": "ff",
+                                "data": "48",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02K"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "25",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02L"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "31",
+                                "mask": "ff",
+                                "data": "34",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02M"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "32",
+                                "mask": "ff",
+                                "data": "94",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02N"
+                            },
+                            {
+                                "book": "00",
+                                "page": "02",
+                                "register": "0c",
+                                "mask": "ff",
+                                "data": "14 3d 13 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02O"
+                            },
+                            {
+                                "book": "00",
+                                "page": "02",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "03",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02P"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 0,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "init",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "00Z"
+            },
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "09",
+                                "mask": "ff",
+                                "data": "10",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "04O"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "13",
+                                "mask": "ff",
+                                "data": "40",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "0DC"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "04P"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": ""
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "Music16bit-LCH",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "010"
+            },
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "09",
+                                "mask": "ff",
+                                "data": "1e",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "08L"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "13",
+                                "mask": "ff",
+                                "data": "c0",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "0DP"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "08M"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": ""
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "Music32bit-LCH",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "011"
+            },
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "09",
+                                "mask": "ff",
+                                "data": "20",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "07I"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "13",
+                                "mask": "ff",
+                                "data": "44",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "0E0"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "07J"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": ""
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "Music16bit-RCH",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "075"
+            },
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "09",
+                                "mask": "ff",
+                                "data": "2e",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "089"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "13",
+                                "mask": "ff",
+                                "data": "c4",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "0EB"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "08A"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": ""
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "Music32bit-RCH",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "07W"
+            }
+        ],
+        "binConfig": {
+            "headerSize": 292,
+            "binaryVersion": [
+                0,
+                0,
+                1,
+                5
+            ],
+            "driverVersion": [
+                0,
+                0,
+                1,
+                1
+            ],
+            "maxConfigs": 64,
+            "maxDevice": 8,
+            "configNameLength": 64,
+            "types": {
+                "deviceType": {
+                    "availableDeviceTypes": [
+                        "Integrated",
+                        "Non Integrated"
+                    ]
+                },
+                "platformType": {
+                    "values": {
+                        "QCom": "0x01",
+                        "MTK": "0x02",
+                        "LSI": "0x03"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "deviceCount": {
+                    "values": {
+                        "1 Device": "0x01",
+                        "2 Devices": "0x02",
+                        "3 Device": "0x03",
+                        "4 Devices": "0x04",
+                        "5 Device": "0x05",
+                        "6 Devices": "0x06",
+                        "7 Devices": "0x07",
+                        "8 Devices": "0x08"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "amplifierType": {
+                    "values": {
+                        "TAS2558": "0x01",
+                        "TAS2560": "0x02",
+                        "TAS2562": "0x03",
+                        "TAS2564": "0x04",
+                        "TAS2783": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 8
+                },
+                "blockType": {
+                    "values": {
+                        "COEFF": "0x01",
+                        "POST_POWER_UP": "0x02",
+                        "PRE_SHUTDOWN": "0x03",
+                        "PRE_POWER_UP": "0x04",
+                        "POST_SHUTDOWN": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "subBlockType": {
+                    "values": {
+                        "SINGLE_BYTE_WRITES": "0x01",
+                        "BURST_WRITES": "0x02",
+                        "DELAY": "0x03",
+                        "FIELD_WRITES": "0x04"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                }
+            }
+        },
+        "platformType": "QCom",
+        "devicesCount": "1 Device",
+        "amplifierType": [
+            "TAS2558"
+        ],
+        "deviceType": "Non Integrated"
+    }
+}

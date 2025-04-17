@@ -1,0 +1,176 @@
+{
+    "version": "1.3.6",
+    "settings": {
+        "configurationList": [
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0e",
+                                "mask": "ff",
+                                "data": "f3",
+                                "delay": "",
+                                "$$hashKey": "01R"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "1b",
+                                "mask": "ff",
+                                "data": "0",
+                                "delay": "",
+                                "$$hashKey": "02K"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "3c",
+                                "mask": "ff",
+                                "data": "21",
+                                "delay": "",
+                                "$$hashKey": "02N"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "$$hashKey": "01S"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2562",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "e",
+                                "delay": "",
+                                "$$hashKey": "02Q"
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Dev 1 - TAS2562",
+                        "deviceValue": 1,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "case01-speaker-16bit-1.536MHz",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "010"
+            }
+        ],
+        "binConfig": {
+            "headerSize": 292,
+            "binaryVersion": [
+                0,
+                0,
+                1,
+                5
+            ],
+            "driverVersion": [
+                0,
+                0,
+                1,
+                1
+            ],
+            "maxConfigs": 64,
+            "maxDevice": 8,
+            "configNameLength": 64,
+            "types": {
+                "deviceType": {
+                    "availableDeviceTypes": [
+                        "Integrated",
+                        "Non Integrated"
+                    ]
+                },
+                "platformType": {
+                    "values": {
+                        "QCom": "0x01",
+                        "MTK": "0x02",
+                        "LSI": "0x03"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "deviceCount": {
+                    "values": {
+                        "1 Device": "0x01",
+                        "2 Devices": "0x02",
+                        "3 Device": "0x03",
+                        "4 Devices": "0x04",
+                        "5 Device": "0x05",
+                        "6 Devices": "0x06",
+                        "7 Devices": "0x07",
+                        "8 Devices": "0x08"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "amplifierType": {
+                    "values": {
+                        "TAS2558": "0x01",
+                        "TAS2560": "0x02",
+                        "TAS2562": "0x03",
+                        "TAS2564": "0x04",
+                        "TAS2783": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 8
+                },
+                "blockType": {
+                    "values": {
+                        "COEFF": "0x01",
+                        "POST_POWER_UP": "0x02",
+                        "PRE_SHUTDOWN": "0x03",
+                        "PRE_POWER_UP": "0x04",
+                        "POST_SHUTDOWN": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "subBlockType": {
+                    "values": {
+                        "SINGLE_BYTE_WRITES": "0x01",
+                        "BURST_WRITES": "0x02",
+                        "DELAY": "0x03",
+                        "FIELD_WRITES": "0x04"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                }
+            }
+        },
+        "platformType": "QCom",
+        "devicesCount": "1 Device",
+        "amplifierType": [
+            "TAS2562"
+        ],
+        "deviceType": "Non Integrated"
+    }
+}

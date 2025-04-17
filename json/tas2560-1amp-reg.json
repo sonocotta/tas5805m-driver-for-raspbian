@@ -1,0 +1,650 @@
+{
+    "version": "1.3.8",
+    "settings": {
+        "configurationList": [
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP",
+                        "commands": [
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "0f",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01J"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "10",
+                                "mask": "ff",
+                                "data": "10",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01K"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "11",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01L"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "12",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01M"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "0d",
+                                "mask": "ff",
+                                "data": "08",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01N"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "0e",
+                                "mask": "ff",
+                                "data": "10",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01O"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "50",
+                                "mask": "ff",
+                                "data": "31",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01P"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "04",
+                                "mask": "ff",
+                                "data": "58",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01Q"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "14",
+                                "mask": "ff",
+                                "data": "03",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01R"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "15",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01S"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "09",
+                                "mask": "ff",
+                                "data": "93",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01T"
+                            },
+                            {
+                                "book": "00",
+                                "page": "fd",
+                                "register": "36",
+                                "mask": "ff",
+                                "data": "c0",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01U"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "08",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01V"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "36",
+                                "mask": "ff",
+                                "data": "32",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01W"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "22",
+                                "mask": "ff",
+                                "data": "3f",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01X"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "49",
+                                "mask": "ff",
+                                "data": "0c",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01Y"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "3c",
+                                "mask": "ff",
+                                "data": "33",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "01Z"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "02",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "020"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "07",
+                                "mask": "ff",
+                                "data": "41",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "021"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "28",
+                                "mask": "ff",
+                                "data": "7f fb b5 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "022"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "2c",
+                                "mask": "ff",
+                                "data": "80 04 4c 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "023"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "30",
+                                "mask": "ff",
+                                "data": "7f f7 6a 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "024"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "1c",
+                                "mask": "ff",
+                                "data": "7f ff ff ff",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "025"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "20",
+                                "mask": "ff",
+                                "data": "00 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "026"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "24",
+                                "mask": "ff",
+                                "data": "00 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "027"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "18",
+                                "mask": "ff",
+                                "data": "06 66 66 66",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "028"
+                            },
+                            {
+                                "book": "00",
+                                "page": "34",
+                                "register": "34",
+                                "mask": "ff",
+                                "data": "3a 46 74 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "029"
+                            },
+                            {
+                                "book": "00",
+                                "page": "34",
+                                "register": "38",
+                                "mask": "ff",
+                                "data": "22 f3 07 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02A"
+                            },
+                            {
+                                "book": "00",
+                                "page": "34",
+                                "register": "3c",
+                                "mask": "ff",
+                                "data": "80 77 61 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02B"
+                            },
+                            {
+                                "book": "00",
+                                "page": "34",
+                                "register": "40",
+                                "mask": "ff",
+                                "data": "22 a7 cc 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02C"
+                            },
+                            {
+                                "book": "00",
+                                "page": "34",
+                                "register": "44",
+                                "mask": "ff",
+                                "data": "3a 0c 93 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02D"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "10",
+                                "mask": "ff",
+                                "data": "6f 5c 28 f5",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02E"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "14",
+                                "mask": "ff",
+                                "data": "67 ae 14 7a",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02F"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "20",
+                                "mask": "ff",
+                                "data": "1c 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02G"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "24",
+                                "mask": "ff",
+                                "data": "1f 0a 3d 70",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02H"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "28",
+                                "mask": "ff",
+                                "data": "22 14 7a e1",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02I"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "2c",
+                                "mask": "ff",
+                                "data": "25 1e b8 51",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02J"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "30",
+                                "mask": "ff",
+                                "data": "28 28 f5 c2",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02K"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "34",
+                                "mask": "ff",
+                                "data": "2b 33 33 33",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02L"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "38",
+                                "mask": "ff",
+                                "data": "2e 3d 70 a3",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02M"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "3c",
+                                "mask": "ff",
+                                "data": "31 47 ae 14",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02N"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "3c",
+                                "mask": "ff",
+                                "data": "3d 99 9a 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02O"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "40",
+                                "mask": "ff",
+                                "data": "30 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02P"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "44",
+                                "mask": "ff",
+                                "data": "50 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02Q"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "4c",
+                                "mask": "ff",
+                                "data": "02 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02R"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "54",
+                                "mask": "ff",
+                                "data": "00 88 40 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02S"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "58",
+                                "mask": "ff",
+                                "data": "00 06 d3 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02T"
+                            },
+                            {
+                                "book": "00",
+                                "page": "32",
+                                "register": "60",
+                                "mask": "ff",
+                                "data": "28 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02U"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "40",
+                                "mask": "ff",
+                                "data": "00 00 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02V"
+                            },
+                            {
+                                "book": "00",
+                                "page": "33",
+                                "register": "64",
+                                "mask": "ff",
+                                "data": "39 80 00 00",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02W"
+                            },
+                            {
+                                "book": "00",
+                                "page": "00",
+                                "register": "07",
+                                "mask": "ff",
+                                "data": "80",
+                                "delay": "",
+                                "comments": "",
+                                "$$hashKey": "02X"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "",
+                        "deviceValue": null,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "07",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": ""
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "",
+                        "deviceValue": null,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "i2s-48k-32bit",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "00Z"
+            }
+        ],
+        "binConfig": {
+            "headerSize": 292,
+            "binaryVersion": [
+                0,
+                0,
+                1,
+                5
+            ],
+            "driverVersion": [
+                0,
+                0,
+                1,
+                1
+            ],
+            "maxConfigs": 64,
+            "maxDevice": 8,
+            "configNameLength": 64,
+            "types": {
+                "deviceType": {
+                    "availableDeviceTypes": [
+                        "Integrated",
+                        "Non Integrated"
+                    ]
+                },
+                "platformType": {
+                    "values": {
+                        "QCom": "0x01",
+                        "MTK": "0x02",
+                        "LSI": "0x03"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "deviceCount": {
+                    "values": {
+                        "1 Device": "0x01",
+                        "2 Devices": "0x02",
+                        "3 Device": "0x03",
+                        "4 Devices": "0x04",
+                        "5 Device": "0x05",
+                        "6 Devices": "0x06",
+                        "7 Devices": "0x07",
+                        "8 Devices": "0x08"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "amplifierType": {
+                    "values": {
+                        "TAS2558": "0x01",
+                        "TAS2560": "0x02",
+                        "TAS2562": "0x03",
+                        "TAS2564": "0x04",
+                        "TAS2783": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 8
+                },
+                "blockType": {
+                    "values": {
+                        "COEFF": "0x01",
+                        "POST_POWER_UP": "0x02",
+                        "PRE_SHUTDOWN": "0x03",
+                        "PRE_POWER_UP": "0x04",
+                        "POST_SHUTDOWN": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "subBlockType": {
+                    "values": {
+                        "SINGLE_BYTE_WRITES": "0x01",
+                        "BURST_WRITES": "0x02",
+                        "DELAY": "0x03",
+                        "FIELD_WRITES": "0x04"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                }
+            }
+        },
+        "platformType": "MTK",
+        "devicesCount": "1 Device",
+        "amplifierType": [
+            "TAS2560"
+        ],
+        "deviceType": "Non Integrated"
+    }
+}

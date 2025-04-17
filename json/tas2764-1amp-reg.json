@@ -1,0 +1,299 @@
+{
+    "version": "1.3.7",
+    "settings": {
+        "configurationList": [
+            {
+                "blocksList": [
+                    {
+                        "blockName": "PRE_POWER_UP - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "1",
+                                "mask": "ff",
+                                "data": "01",
+                                "delay": "",
+                                "comments": "SW reset",
+                                "$$hashKey": "01J"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0e",
+                                "mask": "ff",
+                                "data": "44",
+                                "delay": "",
+                                "comments": "voltage sense transmit enable with slot 4",
+                                "$$hashKey": "01K"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "0f",
+                                "mask": "ff",
+                                "data": "40",
+                                "delay": "",
+                                "comments": "current sense transmit enable with slot 0",
+                                "$$hashKey": "01L"
+                            },
+                            {
+                                "book": "64",
+                                "page": "5",
+                                "register": "4c",
+                                "mask": "ff",
+                                "data": "36 00 00 00",
+                                "delay": "",
+                                "comments": "SAR Slope=2.14",
+                                "$$hashKey": "01M"
+                            },
+                            {
+                                "book": "0",
+                                "page": "6",
+                                "register": "14",
+                                "mask": "ff",
+                                "data": "00 13 52 00 e4 0c aa 00 12 a0 d8 00",
+                                "delay": "",
+                                "comments": "Write quadriatic without additional temp-co and ratio of 1.7",
+                                "$$hashKey": "01N"
+                            },
+                            {
+                                "book": "0",
+                                "page": "1",
+                                "register": "47",
+                                "mask": "ff",
+                                "data": "aa",
+                                "delay": "",
+                                "comments": "threshold-1 disabled",
+                                "$$hashKey": "01O"
+                            },
+                            {
+                                "book": "0",
+                                "page": "1",
+                                "register": "19",
+                                "mask": "ff",
+                                "data": "40",
+                                "delay": "",
+                                "comments": "Linear LSR mode",
+                                "$$hashKey": "01P"
+                            },
+                            {
+                                "book": "0",
+                                "page": "1",
+                                "register": "37",
+                                "mask": "ff",
+                                "data": "3a",
+                                "delay": "",
+                                "comments": "Linear LSR deglitch disabled",
+                                "$$hashKey": "01Q"
+                            },
+                            {
+                                "book": "0",
+                                "page": "fd",
+                                "register": "0d",
+                                "mask": "ff",
+                                "data": "0d",
+                                "delay": "",
+                                "comments": "test page",
+                                "$$hashKey": "01R"
+                            },
+                            {
+                                "book": "0",
+                                "page": "fd",
+                                "register": "6c",
+                                "mask": "ff",
+                                "data": "02",
+                                "delay": "",
+                                "comments": "tm_en_2RC for sync mode improvement",
+                                "$$hashKey": "01S"
+                            },
+                            {
+                                "book": "0",
+                                "page": "fd",
+                                "register": "39",
+                                "mask": "ff",
+                                "data": "98",
+                                "delay": "",
+                                "comments": "Disable Saturation Protection",
+                                "$$hashKey": "01T"
+                            },
+                            {
+                                "book": "0",
+                                "page": "fd",
+                                "register": "48",
+                                "mask": "ff",
+                                "data": "29",
+                                "delay": "",
+                                "comments": "BOP LVL Lock 2S",
+                                "$$hashKey": "01U"
+                            },
+                            {
+                                "book": "0",
+                                "page": "fd",
+                                "register": "60",
+                                "mask": "ff",
+                                "data": "04",
+                                "delay": "",
+                                "comments": "BOP Lock",
+                                "$$hashKey": "01V"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "76",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "DAC mod reset fix for POP",
+                                "$$hashKey": "01W"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "31",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "BOP LV0 Th is set to 2.7V",
+                                "$$hashKey": "01X"
+                            },
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "2",
+                                "mask": "ff",
+                                "data": "00",
+                                "delay": "",
+                                "comments": "power up audio playback with I,V enabled",
+                                "$$hashKey": "01Y"
+                            }
+                        ],
+                        "blockType": "PRE_POWER_UP",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 0,
+                        "deviceShortName": ""
+                    },
+                    {
+                        "blockName": "PRE_SHUTDOWN - Dev 1",
+                        "commands": [
+                            {
+                                "book": "0",
+                                "page": "0",
+                                "register": "02",
+                                "mask": "ff",
+                                "data": "02",
+                                "delay": ""
+                            }
+                        ],
+                        "blockType": "PRE_SHUTDOWN",
+                        "deviceName": "Dev 1 - TAS2558",
+                        "deviceValue": 0,
+                        "deviceShortName": ""
+                    }
+                ],
+                "configName": "I2S-Isense-slot0_Vsense-slot4",
+                "blockTypeValues": {
+                    "COEFF": "0x01",
+                    "POST_POWER_UP": "0x02",
+                    "PRE_SHUTDOWN": "0x03",
+                    "PRE_POWER_UP": "0x04",
+                    "POST_SHUTDOWN": "0x05"
+                },
+                "subBlockTypeValues": {
+                    "SINGLE_BYTE_WRITES": "0x01",
+                    "BURST_WRITES": "0x02",
+                    "DELAY": "0x03",
+                    "FIELD_WRITES": "0x04"
+                },
+                "$$hashKey": "00Z"
+            }
+        ],
+        "binConfig": {
+            "headerSize": 292,
+            "binaryVersion": [
+                0,
+                0,
+                1,
+                5
+            ],
+            "driverVersion": [
+                0,
+                0,
+                1,
+                1
+            ],
+            "maxConfigs": 64,
+            "maxDevice": 8,
+            "configNameLength": 64,
+            "types": {
+                "deviceType": {
+                    "availableDeviceTypes": [
+                        "Integrated",
+                        "Non Integrated"
+                    ]
+                },
+                "platformType": {
+                    "values": {
+                        "QCom": "0x01",
+                        "MTK": "0x02",
+                        "LSI": "0x03"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "deviceCount": {
+                    "values": {
+                        "1 Device": "0x01",
+                        "2 Devices": "0x02",
+                        "3 Device": "0x03",
+                        "4 Devices": "0x04",
+                        "5 Device": "0x05",
+                        "6 Devices": "0x06",
+                        "7 Devices": "0x07",
+                        "8 Devices": "0x08"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "amplifierType": {
+                    "values": {
+                        "TAS2558": "0x01",
+                        "TAS2560": "0x02",
+                        "TAS2562": "0x03",
+                        "TAS2564": "0x04",
+                        "TAS2783": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 8
+                },
+                "blockType": {
+                    "values": {
+                        "COEFF": "0x01",
+                        "POST_POWER_UP": "0x02",
+                        "PRE_SHUTDOWN": "0x03",
+                        "PRE_POWER_UP": "0x04",
+                        "POST_SHUTDOWN": "0x05"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                },
+                "subBlockType": {
+                    "values": {
+                        "SINGLE_BYTE_WRITES": "0x01",
+                        "BURST_WRITES": "0x02",
+                        "DELAY": "0x03",
+                        "FIELD_WRITES": "0x04"
+                    },
+                    "valueType": "int",
+                    "length": 1
+                }
+            }
+        },
+        "platformType": "QCom",
+        "devicesCount": "1 Device",
+        "amplifierType": [
+            "TAS2558"
+        ],
+        "deviceType": "Non Integrated"
+    }
+}

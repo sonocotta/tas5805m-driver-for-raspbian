@@ -24,14 +24,14 @@
 		},
 		{
 			"label": "unload driver",
-            "type": "shell",
-            "command": "if [ -e /sys/bus/i2c/drivers/tas5805m ] && [ -e /sys/bus/i2c/drivers/tas5805m/1-002e ]; then echo \"1-002e\" | sudo tee /sys/bus/i2c/drivers/tas5805m/unbind else echo \"Nothing to do\"; fi; sudo rmmod tas5805m; sudo rmmod snd_soc_simple_card;",
+			"type": "shell",
+			"command": "if [ -e /sys/bus/i2c/drivers/tasdevice-codec ] && [ -e /sys/bus/i2c/drivers/tasdevice-codec/1-002e ]; then echo '1-002e' | sudo tee /sys/bus/i2c/drivers/tasdevice-codec/unbind ; fi; if [ -e /sys/bus/i2c/drivers/tasdevice-codec ] && [ -e /sys/bus/i2c/drivers/tasdevice-codec/1-002f ]; then echo '1-002f' | sudo tee /sys/bus/i2c/drivers/tasdevice-codec/unbind ; fi; sudo rmmod snd_soc_tasdevice; sudo rmmod snd_soc_simple_card;",
 			"group": "build"
 		},
 		{
 			"label": "load driver",
-            "type": "shell",
-            "command": "sudo insmod tas5805m.ko && sudo modprobe snd_soc_simple_card",
+			"type": "shell",
+			"command": "sudo insmod snd_soc_tasdevice.ko && sudo modprobe snd_soc_simple_card",
 			"group": "build"
 		},
 		{
@@ -41,13 +41,19 @@
 			"group": "build"
 		},
 		{
-            "label": "build and reload module",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "build module",
-                "unload driver",
-                "load driver"
-            ]
-        }
+			"label": "build and reload module",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"build module",
+				"unload driver",
+				"load driver"
+			]
+		},
+		{
+			"label": "publish firmware configs",
+			"type": "shell",
+			"command": "sudo cp -r json/*.bin /lib/firmware/",
+			"problemMatcher": []
+		}
 	]
 }

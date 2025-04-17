@@ -1,0 +1,11 @@
+config SND_SOC_TASDEVICE
+	tristate "Texas Instruments TASDEVICE"
+	select REGMAP
+	select REGMAP_I2C
+	select I2C
+	select SYSFS
+	select CONFIG_SOUND
+	help
+	Enable support Texas Instruments tasdevice
+	To compile this driver as a module, choose M here
+	If unsure select "N"

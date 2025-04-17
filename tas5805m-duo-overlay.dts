@@ -1,0 +1,64 @@
+// Definitions for Louder Raspberry
+// dtc -I dts -O dtb -o /boot/overlays/tas5805m.dtbo tas5805m-overlay.dts
+// bash: "sudo dtoverlay tas58xx <i2creg=...> <firmware=...>"
+// /boot/firmware/config.txt: "dtoverlay=tas58xx<,i2creg=...><,firmware=...>"
+// i2creg: TAS5805M@0x2c, TAS5806M@0x2c, TAS5822M@0x2c, TAS5825M@0x4c, TAS5825P@0x4c, TAS5828M@0x60
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    fragment@0 {
+        target = <&i2s>;
+        __overlay__ {
+            status = "okay";
+        };
+    };
+
+    fragment@1 {
+        target = <&i2c1>;
+        __overlay__ {
+            status = "okay";
+            clock-frequency = <400000>;
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            tas5805m_master: tas5805m@2e {
+                #sound-dai-cells = <0>;
+                compatible = "ti,tas5805";
+                reg = <0x2d>, <0x2c>;
+                reset-gpios = <&gpio 4 0>;
+                // ti,dsp-config-name = "2.0_basic";
+            };
+        };
+    };
+
+    fragment@2 {
+        target = <&sound>;
+        __overlay__ {
+            status = "okay";
+            compatible = "simple-audio-card";
+            label = "Louder-Raspberry-2X";
+            simple-audio-card,dai-link {
+                format = "i2s";
+                bitclock-master = <&dailink_master>;
+                frame-master = <&dailink_master>;
+                dailink_master: cpu {
+                        sound-dai = <&i2s>;
+                        dai-tdm-slot-num = <2>;
+                        dai-tdm-slot-width = <32>;
+                };
+                codec {
+                        sound-dai = <&tas5805m_master>;
+                };
+            };
+        };
+    };
+    
+    __overrides__ {
+            firmware = <&tas5805m_master>,"ti,dsp-config-name";  
+            i2creg = <&tas5805m_master>,"reg:<>";
+            pdngpio = <&tas5805m_master>,"pdn-gpios:4";
+    };
+};
