@@ -6,3 +6,5 @@ Module.symvers
 
 snd-soc-tasdevice.mod.c
 snd-soc-tasdevice.mod
+tas5805m.mod
+tas5805m.mod.c
