@@ -188,7 +188,7 @@ I've implemented 11 profiles for all configurations: 0.1 (subwoofer profiles) / 
 - 0: 60Hz cutoff low-pass / 60Hz cutoff high-pass / 60Hz crossover  
 - 1: 70Hz cutoff low-pass / 70Hz cutoff high-pass / 70Hz crossover
 - 2: 80Hz cutoff low-pass / 80Hz cutoff high-pass / 80Hz crossover
-...
+- ...
 - 9: 150Hz cutoff low-pass / 150Hz cutoff high-pass / 150Hz crossover
 - 10: Flat response /  Flat response / No crossover
 
