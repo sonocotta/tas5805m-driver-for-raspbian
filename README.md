@@ -42,6 +42,7 @@ At this point, I will provide this implementation as an alternative to the origi
 - DSP configuration needs to be generated for a specific setup and cannot be easily changed or adjusted
 - None of the ALSA controls are implemented properly; to be more specific, they only work for the **latest DAC** in the chain 
 - Binary configuration has a static naming, so changing the config is a multi-step file-copying exercise
+- Device treedefines single REST pin for all devices, which goes against recommended schematics
 
 ## Installation
 
