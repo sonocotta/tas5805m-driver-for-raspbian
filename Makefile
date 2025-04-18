@@ -24,9 +24,6 @@ obj-$(CONFIG_SND_SOC_TASDEVICE) += snd-soc-tasdevice.o
 KDIR ?= /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
-# obj-m := tas5805m.o
-# obj-m := tas5825m.o
-
 all:
 	make -C $(KDIR) M=$(PWD) modules
 
@@ -35,7 +32,7 @@ clean:
 
 install: all
 	sudo cp $(shell pwd)/*.ko /lib/modules/$(shell uname -r)/kernel/sound/soc/codecs/
-#   sudo cp $(shell pwd)/startup/*.cfg /lib/firmware/
+	sudo cp $(shell pwd)json/cfg-2.0/tas5805-2.0-novolume.bin /lib/firmware/tas5805-1amp-reg.bin
 	sudo depmod -a
 
 uninstall:

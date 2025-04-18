@@ -2,11 +2,15 @@
 
 This is a kernel module code to run a TAS5805M DAC on Raspberry Pi (Zero, Zero W, Zero 2W), Debian-based distributions (Raspbian, Volumio, DietPI, etc)
 
-The repository contains the device tree and source for the `tas5805m` kernel module. It also contains step-by-step instructions on how to use it.
+The repository contains the device tree and source for the `snd-soc-tasdevice` and `tas5805m` kernel modules. It also contains step-by-step instructions on how to use it.
 
 ## Introduction
 
-I've created a [set of development boards](https://github.com/sonocotta/raspberry-media-center/) using TAS5805M DAC, and I think this DAC is truly unique in terms of its features for the price. Not only does it provide pure audio with incredibly high efficiency, but being a digital DAC with an I2C control interface it allows an incredible level of control over the DAC functions. When I started to work on this DAC using the ESP32 platform, information available for it was scarce, except for the datasheet nothing could be found. You say what else would you need? It turns out the datasheet has no information about the DSP function of the device, which is 95% of its complexity (and coolness I might say). Then there was a journey of trial and error and eventual success on the ESP32 platform, with consecutive move to the Raspberry.
+I've created a [set of development boards](https://github.com/sonocotta/raspberry-media-center/) using TAS5805M DAC, and I think this DAC is truly unique in terms of its features for the price. Not only does it provide pure audio with incredibly high efficiency, but being a digital DAC with an I2C control interface it allows an incredible level of control over the DAC functions. 
+
+{image}
+
+When I started to work on this DAC using the ESP32 platform, information available for it was scarce, except for the datasheet nothing could be found. You say what else would you need? It turns out the datasheet has no information about the DSP function of the device, which is 95% of its complexity (and coolness I might say). Then there was a journey of trial and error and eventual success on the ESP32 platform, with consecutive move to the Raspberry.
 
 Linux kernel has [tas5805m](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/tas5805m.c) module code already. The first issue with it, it is not included by default in any kernel, and although it is possible to rebuild and reinstall the kernel on the Raspberry, it is definitely not a trivial task to do. But the real issue is, that it is a very basic, if not minimal implementation with nothing but startup sequence and volume pot implementation. what do we miss out?
 
@@ -21,6 +25,24 @@ Linux kernel has [tas5805m](https://github.com/torvalds/linux/blob/master/sound/
 
 Nuff said, it is a great device and deserves community attention and adoption.
 
+## Word on dual DAC configuration
+
+The TAS5805M supports chaining devices in either pass-through or DSP-chaining mode. Specifically it exposes SDOUT pin that whould be an input pin for downstream DAC and allows configuration of that SDPIN to spit out either original data stream or post-DSP data. 
+
+I started to update the original implementation to support dual DAC operation but got stuck confguring original device tree implementation into single-audio-device -> multiple DACs config. I reached out to TI support and they proided whole new driver code that seems to support device chainig.
+
+After looking inside the code I found it to be a bit clumsy, and many features missing compared to the original implementation. But in other aspects TI ode was much better integrated into linux kernel ASoC, and most importantly, after some changes it worked with dual DAC implemetation.
+
+At this point I will provide this implementation as an alternative to original drier until i figure out how to mke it work in chaining config
+
+### What doesn't look right in the [this branch] TI driver implementation
+
+- Device tree defined only master I2C device, all slave devices are identified on the fly.
+- DSP configuration is provided via binary format that is extremely inconvinient to use
+- DSP configuration needs to be generated for specific setup and cannot be easily changed or adjusted
+- None of the ALSA controls are implemented properly, to be more specific they only work for the **latest DAC** in the chain 
+- binary configuration has a static naming, so changing config is a multi-step file-copying excersize
+
 ## Installation
 
 We're about to build kernel modules, so we need to install a few dependencies first (all commands going forward are running on the target host, ie Raspberry Pi) 
@@ -33,8 +55,11 @@ Let's get code from GitHub
 
 ```
 $ git clone https://github.com/sonocotta/tas5805m-for-raspbian-paspberry-pi-zero && cd tas5805m-for-raspbian-paspberry-pi-zero
-```
 
+# if you're building for dual DAC device (2X)
+git checkout -b features/louder-raspberry-2x-support
+
+```
 
 ## Device tree 
 
@@ -46,31 +71,73 @@ $ sudo ./compile-overlay.sh
 
 this will compile the overlay file, put the compiled file under `/boot/overlays` 
 
-Next, add to `/boot/config.txt`
+Next, add to `/boot/firmware/config.txt`
 
 ```
-# Enable DAC
+# Enable DAC (Louder Raspberry Media Center or Louder Raspberry 1X Hat, original driver)
 dtoverlay=tas5805m,i2creg=0x2d
+
+# Raspberry  DAC (Louder Raspberry Media Center or Louder Raspberry 1X Hat, TI driver)
+dtoverlay=tas5805-1x
+
+# Enable DAC (Louder Raspberry, original driver)
+dtoverlay=tas5805m-2x
+
 ```
 
-`0x2d` is an I2C address of the device, it can be different on boards, but you should find in the documentation what it is exactly
+`0x2d` is an I2C address of the device, it can be different on boards, but you should find in the documentation what it is exactly. Another way to validate it is to check on the device directly
 
-You may also comment out built-in audio and HDMI if you're running headless
+```
+# install i2c tools
+sudo apt install i2c-tools
+
+# list devices
+i2cdetect -y 1
+
+```
+
+spits out smth like this:
+```
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+00:          -- -- -- -- -- -- -- -- -- -- -- -- --
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+20: -- -- -- -- -- -- -- -- -- -- -- -- -- 2d 2e --
+30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+70: -- -- -- -- -- -- -- —
+```
+
+While you're in the `config.txt` file, you may also comment out built-in audio and HDMI if you're running headless
 
 ```
 #dtparam=audio=on
 #dtoverlay=vc4-kms-v3d
 ```
 
-You need to reboot for changes to take effect, but this will not work just yet. We are referencing the `tas5805m` kernel module there, and this one is not there yet. Therefore we will build it on the same host using the current kernel sources that we just pulled 
+You need to reboot for changes to take effect, but this will not work just yet. We are referencing the `tas5805m` or `snd-soc-tasdevice` kernel module there, and this one is not there yet. Therefore we will build it on the same host using the current kernel sources that we just pulled 
 
 ## Kernel module - basic setup
 
-Now you are ready to build. The first command produces `tas5805m.ko` file among others. Second will copy it to the appropriate kernel modules folder.
+Now you are ready to build. The first command produces `tas5805m.ko` (or `snd-soc-tasdevice` on TI driver) file among others. Second will copy it to the appropriate kernel modules folder.
 
 ```
 $ make all
 $ sudo make install
+```
+
+In case of TI driver last step is to provide DSP configuration to the driver
+```
+# Single subwoofer (PBTL) device
+sudo cp json/cfg-0.1/tas5805-0.1-novolume.bin /lib/firmware/tas5805-1amp-reg.bin
+
+# Single stereo (BTL) device
+sudo cp json/cfg-2.0/tas5805-2.0-novolume.bin /lib/firmware/tas5805-1amp-reg.bin
+
+# DUAL 2.1 (2xBTL + PBTL) device
+sudo cp json/cfg-2.1/tas5805-2.1-novolume.bin /lib/firmware/tas5805-2amp-reg.bin
+
 ```
 
 Now we are ready to reboot and check if we have a sound card listed
@@ -106,6 +173,23 @@ Alsa should give you baseline controls as well
 alsamixer
 ```
 ![image](https://github.com/user-attachments/assets/58c44fbe-2532-4ca3-b89e-1d676f43647b)
+
+In case of Ti driver set of controls look a bit differently, with important addition: profile Id\
+
+### [TI driver] Profile Id
+
+TI driver implements multiple DSP profiles in the same binary formware, that can be changed on the fly. The only  limitation is you need to stop playback for a ~10 seconds for DAC to go into sleep mode and new profile will be applier on playback resume.
+
+I've implemented 11 profiles for all configurations: 0.1 (subwoofer profiles) / 2.0 (stereo) / 2.1 configs
+
+- 0: 60Hz cutoff low-pass / 60Hz cutoff high-pass / 60Hz crossover  
+- 1: 70Hz cutoff low-pass / 70Hz cutoff high-pass / 70Hz crossover
+- 2: 80Hz cutoff low-pass / 80Hz cutoff high-pass / 80Hz crossover
+...
+- 9: 150Hz cutoff low-pass / 150Hz cutoff high-pass / 150Hz crossover
+- 10: Flat response /  Flat response / No crossover
+
+After you setup your driver, select desired profile and it will be preserved across reboot
 
 ### Digital Volume and Analog Gain
 
@@ -225,6 +309,7 @@ TAS5805M has a bridge mode of operation, that causes both output drivers to sync
 | Schematics | ![image](https://github.com/sonocotta/esp32-audio-dock/assets/5459747/e7ada8c0-c906-4c08-ae99-be9dfe907574) | ![image](https://github.com/sonocotta/esp32-audio-dock/assets/5459747/55f5315a-03eb-47c8-9aea-51e3eb3757fe)
 | Speaker Connection | ![image](https://github.com/user-attachments/assets/8e5e9c38-2696-419b-9c5b-d278c655b0db) | ![image](https://github.com/user-attachments/assets/8aba6273-84c4-45a8-9808-93317d794a44)
 
+
 ## Basic mode disclaimer
 
 The basic method sets all DSP parameters into a disabled state, so at this point, you're using DAC in its most basic function. Currently, the only way to play with TAS5805M DSP is to buy an evaluation board from TI ($250+) and request TI PurePath software to interact with it. Not only is it incredibly impractical, but you don't get to change settings on the fly as soon as you disconnect your PC from the evaluation board, since you can only take a snapshot of your settings and stick to them forever. Bugger!
@@ -239,7 +324,7 @@ The work I'm trying to perform is to:
 - Allow settings snapshots to be applied on the board's startup without an evaluation kit, so at least you can transfer your carefully crafted settings into a working Raspberry setup
 - Allow some settings to be changed on the fly as if you had an evaluation kit all the time.
 
-## Kernel module - pre-defined setup
+## Kernel module - pre-defined setup (original driver only)
 
 As said above you can create a custom DSP config in the TI PurePath application, which I did and included in the [startup](/startup) folder. Some of them are subwoofer configs, and some specific EQ settings fit my taste. I never intended to cover every possible scenario, but rather provide a few examples starting from those I use most often. I encourage everyone to create their own configs in PurePath and include them in the startup folder as well.
 
@@ -266,7 +351,7 @@ The audio changes will be applied after reboot, also you should find basic setti
 
 ![image](https://github.com/user-attachments/assets/741ba389-fc29-48c2-9b65-4a1d1932a5b1)
 
-## Kernel module - change settings on the fly
+## Kernel module - change settings on the fly (original driver only)
 
 I'm currently working on the alsa controls that directly change DSP settings on the device. This allows both on-demand in-place changes and code-driven changes from the UI or automation tools.
 
@@ -285,8 +370,8 @@ make all && sudo make install && sudo reboot
 After reboot you should be able to see the following settings in the Alsa. Let's go through them one by one
 
 ![image](https://github.com/user-attachments/assets/217430fa-6c53-4b25-8143-d74a6e383de3)
-
-### EQ controls
+ 
+### EQ controls (original driver only)
 
 TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's transfer function using BQ coefficients. In a practical sense, it allows us to draw pretty much any curve in a frequency response. I decided to split the audio range into 15 sections, defining for each -15Db..+15Db adjustment range and appropriate bandwidth to cause mild overlap. This allows both to keep the curve flat enough to not cause distortions even in extreme settings but also allows a wide range of transfer characteristics. This EQ setup is a common approach for full-range speakers, the Subwoofer specific setup is underway.
 
@@ -315,7 +400,7 @@ Here are a few examples of different configurations that can be created with the
   ![image](https://github.com/user-attachments/assets/31f17a19-9dbe-4e9e-947e-0cbcccbf218c)
   ![image](https://github.com/user-attachments/assets/c0445bd6-29f6-44d0-9632-14becc1de35e)
 
-### Mixer settings
+### Mixer settings (original driver only)
 
 Mixer settings allow to mix channel signals and route them to the appropriate channel. The typical setup for the mixer is to send Left channel audio to the Left driver, and Right to the Right 
 
