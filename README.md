@@ -189,18 +189,9 @@ optimized for battery-powered applications. With Hybrid modulation enabled, the 
 and adjust PWM duty cycle dynamically based on PVDD. Hybrid modulation achieves ultra low idle current and
 maintains the same audio performance level as the BD Modulation. In order to minimize the power dissipation,
 low switching frequency (For example, Fsw = 384 kHz) with proper LC filter (15 µH + 0.68 µF or 22 µH + 0.68
-µF) is recommended
+µF) is recommended.
 
-Not yet implemented:
-
-> 1) With Hybrid Modulation, users need to input the system's PVDD value via device development App.
-> 2) With Hybrid Modulation, Change device state from Deep Sleep Mode to Play Mode, specific sequence is required:
-> 1. Set device's PWM Modulation to BD or 1SPW mode via Register (Book0/Page0/Register0x02h, Bit [1:0]).
-> 2. Set device to Hi-Z state via Register (Book0/Page0/Register0x03h, Bit [1:0]).
-> 3. Delay 2ms.
-> 4. Set device's PWM Modulation to Hybrid mode via Register (Book0/Page0/Register0x02h, Bit[1:0]).
-> 5. Delay 15ms.
-> 6. Set device to Play state via Register (Book0/Page0/Register0x03h, Bit [1:0])
+Hybrid modulation is fully supported and can be selected via the "Modulation Scheme" ALSA control.
 
 ### Driver Switching frequency
 
@@ -227,62 +218,79 @@ TAS5805M has a bridge mode of operation, that causes both output drivers to sync
 
 ## Basic mode disclaimer
 
-The basic method sets all DSP parameters into a disabled state, so at this point, you're using DAC in its most basic function. Currently, the only way to play with TAS5805M DSP is to buy an evaluation board from TI ($250+) and request TI PurePath software to interact with it. Not only is it incredibly impractical, but you don't get to change settings on the fly as soon as you disconnect your PC from the evaluation board, since you can only take a snapshot of your settings and stick to them forever. Bugger!
+**Note:** This section describes the original limitations that motivated this driver development. The driver now provides full dynamic control without requiring an evaluation board.
+
+Originally, the only way to configure TAS5805M DSP was to buy an evaluation board from TI ($250+) and use TI PurePath software. This approach had major limitations:
+- No ability to change settings on the fly
+- Settings locked after creating a snapshot
+- Requires keeping the evaluation board connected
+
+This driver solves these problems by providing:
 
   ![image](https://github.com/user-attachments/assets/a324c8b1-c95f-48c9-99c4-a934ab2a7527)
   ![image](https://github.com/user-attachments/assets/77234d68-d83b-4766-aa4e-1ab4c6fae852)
   ![image](https://github.com/user-attachments/assets/f36ff5cf-da54-4bc7-9dc7-cb7e6df62cbd)
   ![image](https://github.com/user-attachments/assets/c6fa2f51-e50d-4753-aae9-f064f7f60d7d)
 
-The work I'm trying to perform is to:
+This driver provides:
 
-- Allow settings snapshots to be applied on the board's startup without an evaluation kit, so at least you can transfer your carefully crafted settings into a working Raspberry setup
-- Allow some settings to be changed on the fly as if you had an evaluation kit all the time.
+-  Load PurePath configuration snapshots at boot via firmware files
+-  Full dynamic control of all major DSP parameters through ALSA
+-  Real-time adjustment without reboots or reconnecting hardware
+-  15-band parametric equalizer with live updates
+-  Mixer controls for flexible channel routing
+-  Modulation and power optimization settings
+-  Bridge mode for maximum power output
 
-## Kernel module - pre-defined setup
+## Kernel module - loading custom DSP configuration
 
-As said above you can create a custom DSP config in the TI PurePath application, which I did and included in the [startup](/startup) folder. Some of them are subwoofer configs, and some specific EQ settings fit my taste. I never intended to cover every possible scenario, but rather provide a few examples starting from those I use most often. I encourage everyone to create their own configs in PurePath and include them in the startup folder as well.
+You can create a custom DSP config in the TI PurePath application and load it at boot time. The driver supports loading DSP configuration from firmware files.
 
-First, let's enable the  config we selected in the `tas5805m.c` file. Uncomment two lines like in the example below
+### Creating a DSP configuration binary
+
+1. Use TI PurePath Console software to create your desired configuration
+2. Export the configuration as a register dump (sequence of register address/value pairs)
+3. Create a binary file with the register sequence (omit the pre-boot initialization sequence that occurs before the 5ms delay)
+4. Name the file `tas5805m_dsp_<config_name>.bin`
+5. Place the file in `/lib/firmware/`
+
+### Enabling the configuration
+
+Add the configuration name to your device tree overlay or `/boot/config.txt`:
 
 ```
-#pragma message("tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz) config is used")
-#include "startup/custom/tas5805m_2.0+eq(+12db_30Hz)(-3Db_500Hz)(+3Db_8kHz)(+3Db_15kHz).h"
+dtoverlay=tas5805m,i2creg=0x2d,dsp_config_name=<config_name>
 ```
 
-Enable custom DSP config in the `Makefile` by uncommenting this line
+For example, if your file is `tas5805m_dsp_myconfig.bin`, use:
 
 ```
-CFLAGS_tas5805m.o += -DTAS5805M_DSP_CUSTOM
+dtoverlay=tas5805m,i2creg=0x2d,dsp_config_name=myconfig
 ```
 
-rebuild and reinstall the driver and reboot the device
+Rebuild and reinstall the driver, then reboot:
+
+```
+make all && sudo make install && sudo reboot
+```
+
+The DSP configuration will be applied on first audio playback. If no configuration is specified, the driver will start with default settings and all controls available through ALSA.
+
+## Kernel module - dynamic DSP controls
+
+The driver provides comprehensive ALSA controls that allow real-time changes to DSP settings. This enables both manual adjustments through `alsamixer` and automated changes from scripts or applications.
+
+### Using the controls
+
+Build and install the driver:
 
 ```
 make all && sudo make install && sudo reboot
 ```
 
-The audio changes will be applied after reboot, also you should find basic settings in the Alsa
+After reboot, you can access all settings through ALSA. Use `alsamixer` for interactive control or `amixer` for scripting. All changes take effect immediately without requiring a reboot.
 
-![image](https://github.com/user-attachments/assets/741ba389-fc29-48c2-9b65-4a1d1932a5b1)
-
-## Kernel module - change settings on the fly
-
-I'm currently working on the alsa controls that directly change DSP settings on the device. This allows both on-demand in-place changes and code-driven changes from the UI or automation tools.
-
-Build the kernel with disabled DSP config in the `Makefile` flag
-
-```
-# CUSTOM DSP config
-# CFLAGS_tas5805m.o += -DTAS5805M_DSP_CUSTOM
-```
-
-As usual, build, install, reboot
-```
-make all && sudo make install && sudo reboot
-```
-
-After reboot you should be able to see the following settings in the Alsa. Let's go through them one by one
+Let's go through the available controls:
 
 ![image](https://github.com/user-attachments/assets/217430fa-6c53-4b25-8143-d74a6e383de3)
 
@@ -331,19 +339,34 @@ Of course, you can decide to use a single channel or a mixup of two, just keep i
 
 ## Known issues
 
-The current version of the driver is built in a very specific and untypical way. The DSP initialization is done on the first PLAY/RESUME event. Why is that specifically? TAS5805M requires an I2S clock to be present and stable for at least a few milliseconds before DSP settings will be considered. If controls are applied before the clock is present, they will be simply ignored. 
+### DSP initialization timing
 
-The method described above worked well until DSP settings became dynamic. Upon reboot `alsa-restore` service will try to apply your last settings, and with the current architecture, they will be simply ignored.
+The driver initializes the DSP on the first PLAY/RESUME event rather than during probe. This is by design: the TAS5805M requires a stable I2S clock to be present for at least 5ms before DSP configuration can be applied. If settings are written before the clock is stable, they will be ignored by the device.
 
-I'm working currently to fix this bug in either
+### ALSA state restoration
+
+The driver stores control values internally and applies them when the device is powered and the I2S clock is stable. However, settings changed via `alsamixer` will not persist across reboots unless you save the ALSA state:
+
+```bash
+sudo alsactl store
+```
+
+The `alsa-restore` service will then restore your settings on boot. Note that because DSP initialization happens on first playback, the settings are applied at that time rather than during boot.
 
 # TODO
 
-- [ ] Spread spectrum switch
-- [ ] Soft clipper settings
-- [ ] Power testing for switching frequency, modulation, and output filters
-- [ ] Specific recommendations for my boards 
-- [ ] Fix the bug with `alsa-restore` service not working for anything but Digital Volume
+- [x] Dynamic EQ controls (15-band parametric EQ)
+- [x] Mixer controls (L2L, R2L, L2R, R2R)
+- [x] Modulation scheme control (BD, 1SPW, Hybrid)
+- [x] Switching frequency control
+- [x] Bridge mode support
+- [x] Analog gain control
+- [o] Spread spectrum switch - tested in connection with power consumption and decided not implementing, as it does nothing
+- [o] Soft clipper settings - tested on ESP32 driver and proved useless outside of AGL/DRC context
+- [o] DRC/AGL controls - tested and lost interest, as it sound compressors are no fun to me in general
+- [o] FIR filter controls - requires more investigation on how to generate coefficients
+- [x] Power consumption testing for different modulation schemes
+- [x] Detailed performance benchmarks for different configurations
 
 ## References
 

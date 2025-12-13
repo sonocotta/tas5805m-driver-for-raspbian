@@ -6,3 +6,5 @@ tas5805m.mod*
 .modules.order.cmd
 Module.symvers
 modules.order
+..module-common.o.cmd
+.module-common.o

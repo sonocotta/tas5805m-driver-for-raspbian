@@ -1,15 +1,14 @@
 # Comment/uncomment the appropriate line to select the desired DSP configuration
 # All options are disabled by default.  Enable only ONE.
 
-# CUSTOM DSP config
-CFLAGS_tas5805m.o += -DTAS5805M_DSP_CUSTOM
-
 CFLAGS_tas5805m.o += -g
 
 KDIR ?= /lib/modules/$(shell uname -r)/build
 PWD := $(shell pwd)
 
 obj-m := tas5805m.o
+# enable to compile with debug messages
+#ccflags-y := -DDEBUG
 
 all:
 	make -C $(KDIR) M=$(PWD) modules

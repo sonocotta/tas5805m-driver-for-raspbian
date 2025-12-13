@@ -20,24 +20,30 @@
 			"type": "shell",
 			"label": "install module",
 			"command": "sudo make install",
+			"problemMatcher": [
+				"$gcc"
+			],
 			"group": "build"
 		},
 		{
-			"label": "unload driver",
+			"label": "unload driver, stop snapclient",
             "type": "shell",
-            "command": "if [ -e /sys/bus/i2c/drivers/tas5805m ] && [ -e /sys/bus/i2c/drivers/tas5805m/1-002e ]; then echo \"1-002e\" | sudo tee /sys/bus/i2c/drivers/tas5805m/unbind else echo \"Nothing to do\"; fi; sudo rmmod tas5805m; sudo rmmod snd_soc_simple_card;",
+            "command": "sudo systemctl stop snapclient ; if [ -e /sys/bus/i2c/drivers/tas5805m ] && [ -e /sys/bus/i2c/drivers/tas5805m/1-002e ]; then echo \"1-002e\" | sudo tee /sys/bus/i2c/drivers/tas5805m/unbind; fi; sudo rmmod tas5805m 2>/dev/null || true; sudo rmmod snd_soc_simple_card 2>/dev/null || true;",
+			"problemMatcher": [],
 			"group": "build"
 		},
 		{
-			"label": "load driver",
+			"label": "load driver, start snapclient",
             "type": "shell",
-            "command": "sudo insmod tas5805m.ko && sudo modprobe snd_soc_simple_card",
+            "command": "sudo rmmod tas5805m 2>/dev/null || true; sudo insmod tas5805m.ko && sudo modprobe snd_soc_simple_card && sudo systemctl start snapclient",
+			"problemMatcher": [],
 			"group": "build"
 		},
 		{
 			"label": "restart snapclient",
 			"type": "shell",
 			"command": "sudo systemctl restart snapclient",
+			"problemMatcher": [],
 			"group": "build"
 		},
 		{
@@ -45,9 +51,10 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "build module",
-                "unload driver",
-                "load driver"
-            ]
+                "unload driver, stop snapclient",
+                "load driver, start snapclient"
+            ],
+            "problemMatcher": []
         }
 	]
 }

@@ -31,7 +31,6 @@
 //              pvdd-supply = <&audiopwr>;
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 4 0>;
-                ti,dsp-config-name = "default";
             };
         };
     };
