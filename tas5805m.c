@@ -13,6 +13,8 @@
 //
 // It has been simplified a little and reworked for the 5.x ALSA SoC API.
 
+#define DEBUG
+
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
@@ -870,14 +872,16 @@ static int tas5805m_dac_event(struct snd_soc_dapm_widget *w,
 
 static const struct snd_soc_dapm_route tas5805m_audio_map[] = {
 	{ "DAC", NULL, "DAC IN" },
-	{ "OUT", NULL, "DAC" },
+	{ "OUTA", NULL, "DAC" },
+	{ "OUTB", NULL, "DAC" },
 };
 
 static const struct snd_soc_dapm_widget tas5805m_dapm_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("DAC IN", "Playback", 0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_DAC_E("DAC", NULL, SND_SOC_NOPM, 0, 0,
 		tas5805m_dac_event, SND_SOC_DAPM_PRE_PMD),
-	SND_SOC_DAPM_OUTPUT("OUT")
+	SND_SOC_DAPM_OUTPUT("OUTA"),
+	SND_SOC_DAPM_OUTPUT("OUTB")
 };
 
 static const struct snd_soc_component_driver soc_codec_dev_tas5805m = {

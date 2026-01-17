@@ -1,0 +1,86 @@
+// Definitions for Dual TAS5805M setup
+// dtc -I dts -O dtb -o /boot/overlays/tas58xx-dual.dtbo tas5805m-dual-overlay.dts
+// bash: "sudo dtoverlay tas58xx-dual"
+// /boot/config.txt: "dtoverlay=tas58xx-dual"
+// Primary DAC: TAS5805M@0x2d, GPIO4
+// Secondary DAC: TAS5805M@0x2e, GPIO5
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+    fragment@0 {
+        target = <&i2s>;
+        __overlay__ {
+            status = "okay";
+        };
+    };
+
+    fragment@1 {
+        target = <&i2c1>;
+        __overlay__ {
+            status = "okay";
+            clock-frequency = <400000>;
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            codec_primary: tas5805m@2d {
+                #sound-dai-cells = <0>;
+                compatible = "ti,tas5805m";
+                reg = <0x2d>;
+                pvdd-supply = <&vdd_3v3_reg>;
+                pdn-gpios = <&gpio 4 0>;
+                sound-name-prefix = "2.0";
+            };
+
+            codec_secondary: tas5805m@2e {
+                #sound-dai-cells = <0>;
+                compatible = "ti,tas5805m";
+                reg = <0x2e>;
+                pvdd-supply = <&vdd_3v3_reg>;
+                pdn-gpios = <&gpio 5 0>;
+                sound-name-prefix = "0.1";
+            };
+        };
+    };
+
+    fragment@2 {
+        target = <&sound>;
+        __overlay__ {
+            status = "okay";
+            compatible = "simple-audio-card";
+            label = "Louder-Raspberry-Dual";
+            simple-audio-card,format = "i2s";
+            simple-audio-card,bitclock-master = <&cpu_dai>;
+            simple-audio-card,frame-master = <&cpu_dai>;
+            simple-audio-card,aux-devs = <&codec_secondary>;
+            simple-audio-card,widgets =
+                "Speaker", "Stereo Speaker",
+                "Speaker", "Subwoofer";
+            simple-audio-card,routing =
+                "Stereo Speaker", "2.0 OUTA",
+                "Stereo Speaker", "2.0 OUTB",
+                "Subwoofer", "0.1 OUTA",
+                "Subwoofer", "0.1 OUTB",
+                "0.1 DAC IN", "2.0 DAC";
+            
+            cpu_dai: simple-audio-card,cpu {
+                sound-dai = <&i2s>;
+                dai-tdm-slot-num = <2>;
+                dai-tdm-slot-width = <32>;
+            };
+
+            simple-audio-card,codec {
+                sound-dai = <&codec_primary>;
+            };
+        };
+    };
+
+    __overrides__ {
+        firmware_primary = <&codec_primary>,"ti,dsp-config-name";
+        firmware_secondary = <&codec_secondary>,"ti,dsp-config-name";
+        i2creg_primary = <&codec_primary>,"reg:<>";
+        i2creg_secondary = <&codec_secondary>,"reg:<>";
+    };
+};
