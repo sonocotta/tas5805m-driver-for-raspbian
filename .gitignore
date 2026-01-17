@@ -8,3 +8,4 @@ Module.symvers
 modules.order
 ..module-common.o.cmd
 .module-common.o
+ottercast

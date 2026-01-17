@@ -5,6 +5,7 @@
         "*.c--": "cpp"
     },
     "chat.tools.terminal.autoApprove": {
-        "i2cdetect": true
+        "i2cdetect": true,
+        "lsmod": true
     }
 }

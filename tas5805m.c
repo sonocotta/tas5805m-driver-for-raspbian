@@ -35,6 +35,7 @@
 #include <sound/tlv.h>
 #include "tas5805m.h"
 #include "eq/tas5805m_eq.h"
+#include "eq/tas5805m_eq_profiles.h"
 
 /* Text arrays for enum controls */
 static const char * const dac_mode_text[] = {
@@ -75,6 +76,7 @@ static const uint8_t dsp_cfg_preboot[] = {
 	REG_PAGE, TAS5805M_REG_PAGE_0, 
 	REG_BOOK, TAS5805M_BOOK_CONTROL_PORT, 
 	TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MODE_HIZ,
+	TAS5805M_REG_SDOUT_SEL, TAS5805M_REG_SDOUT_SEL_PRE_DSP
 };
 
 #define SET_BOOK_AND_PAGE(rm, book, page) \
@@ -105,6 +107,7 @@ struct tas5805m_priv {
 	unsigned int			switch_freq;
 	unsigned int			bridge_mode;
 	unsigned int			eq_mode;
+	bool					enable_eq_controls;  /* Enable EQ band controls in ALSA */
 	bool					is_powered;
 	bool					is_muted;
 	bool					dsp_initialized;
@@ -539,24 +542,6 @@ static int tas5805m_enum_put(struct snd_kcontrol *kcontrol,
 }
 
 /* Define enum control structures */
-static struct tas5805m_enum_ctrl modulation_mode_ctrl = {
-	.texts = modulation_mode_text,
-	.num_items = ARRAY_SIZE(modulation_mode_text),
-	.offset = offsetof(struct tas5805m_priv, modulation_mode),
-};
-
-static struct tas5805m_enum_ctrl switch_freq_ctrl = {
-	.texts = switch_freq_text,
-	.num_items = ARRAY_SIZE(switch_freq_text),
-	.offset = offsetof(struct tas5805m_priv, switch_freq),
-};
-
-static struct tas5805m_enum_ctrl bridge_mode_ctrl = {
-	.texts = dac_mode_text,
-	.num_items = ARRAY_SIZE(dac_mode_text),
-	.offset = offsetof(struct tas5805m_priv, bridge_mode),
-};
-
 static struct tas5805m_enum_ctrl eq_mode_ctrl = {
 	.texts = eq_mode_text,
 	.num_items = ARRAY_SIZE(eq_mode_text),
@@ -712,7 +697,8 @@ static int tas5805m_eq_put(struct snd_kcontrol *kcontrol,
 }
 
 
-static const struct snd_kcontrol_new tas5805m_snd_controls[] = {
+/* Base controls (always registered) */
+static const struct snd_kcontrol_new tas5805m_snd_controls_base[] = {
 	{
 		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
 		.name	= "Digital Volume",
@@ -738,11 +724,11 @@ static const struct snd_kcontrol_new tas5805m_snd_controls[] = {
 	TAS5805M_MIXER("Mixer L2R Gain", mixer_l2r),
 	TAS5805M_MIXER("Mixer R2R Gain", mixer_r2r),
 
-	TAS5805M_ENUM("Modulation Scheme", modulation_mode_ctrl),
-	TAS5805M_ENUM("Switching Freq", switch_freq_ctrl),
-	TAS5805M_ENUM("Bridge Mode", bridge_mode_ctrl),
 	TAS5805M_ENUM("Equalizer", eq_mode_ctrl),
+};
 
+/* EQ band controls (conditionally registered based on device tree) */
+static const struct snd_kcontrol_new tas5805m_snd_controls_eq[] = {
 	TAS5805M_EQ_BAND("00020 Hz", 0),
 	TAS5805M_EQ_BAND("00032 Hz", 1),
 	TAS5805M_EQ_BAND("00050 Hz", 2),
@@ -832,6 +818,18 @@ static void do_work(struct work_struct *work)
 		{
 			send_cfg(rm, tas5805m->dsp_cfg_data, tas5805m->dsp_cfg_len);
 		}
+		
+		/* Apply bridge mode setting from device tree after DSP boot */
+		SET_BOOK_AND_PAGE(rm, TAS5805M_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_0);
+		unsigned int dctrl1_init = (tas5805m->modulation_mode & 0x3) |
+								  ((tas5805m->bridge_mode & 0x1) << 2) |
+								  ((tas5805m->switch_freq & 0x7) << 4);
+		regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_1, dctrl1_init);
+		dev_info(&tas5805m->i2c->dev, "Device configuration: modulation=%u, bridge_mode=%u (%s), switch_freq=%u\n",
+				 tas5805m->modulation_mode, tas5805m->bridge_mode,
+				 tas5805m->bridge_mode ? "Bridge/PBTL" : "Normal/Stereo",
+				 tas5805m->switch_freq);
+		
 		tas5805m->dsp_initialized = true;
 	} else {
 		dev_dbg(&tas5805m->i2c->dev, "%s: DSP already initialized, skipping preboot config\n", __func__);
@@ -852,6 +850,48 @@ static int tas5805m_dac_event(struct snd_soc_dapm_widget *w,
 
 	dev_dbg(component->dev, "%s: event=0x%x\n", 
 		__func__, event);
+
+	if (event & SND_SOC_DAPM_POST_PMU) {
+		dev_dbg(component->dev, "%s: DSP startup\n", __func__);
+		
+		mutex_lock(&tas5805m->lock);
+		if (!tas5805m->is_powered) {
+			tas5805m->is_powered = true;
+			
+			/* Wait for I2S clock to stabilize */
+			usleep_range(5000, 10000);
+			
+			/* Only send preboot config once per PDN cycle */
+			if (!tas5805m->dsp_initialized) {
+				dev_dbg(component->dev, "%s: sending preboot config\n", __func__);
+				send_cfg(rm, dsp_cfg_preboot, ARRAY_SIZE(dsp_cfg_preboot));
+				/* Wait for DSP to boot */
+				usleep_range(5000, 15000);
+				if (tas5805m->dsp_cfg_len > 0) {
+					send_cfg(rm, tas5805m->dsp_cfg_data, tas5805m->dsp_cfg_len);
+				}
+				
+				/* Apply bridge mode setting from device tree after DSP boot */
+				SET_BOOK_AND_PAGE(rm, TAS5805M_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_0);
+				unsigned int dctrl1_init = (tas5805m->modulation_mode & 0x3) |
+										  ((tas5805m->bridge_mode & 0x1) << 2) |
+										  ((tas5805m->switch_freq & 0x7) << 4);
+				regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_1, dctrl1_init);
+				dev_info(component->dev, "Device configuration: modulation=%u, bridge_mode=%u (%s), switch_freq=%u\n",
+						 tas5805m->modulation_mode, tas5805m->bridge_mode,
+						 tas5805m->bridge_mode ? "Bridge/PBTL" : "Normal/Stereo",
+						 tas5805m->switch_freq);
+				
+				tas5805m->dsp_initialized = true;
+			} else {
+				dev_dbg(component->dev, "%s: DSP already initialized, skipping preboot config\n", __func__);
+			}
+			
+			/* Power up and configure the device */
+			tas5805m_refresh(tas5805m);
+		}
+		mutex_unlock(&tas5805m->lock);
+	}
 
 	if (event & SND_SOC_DAPM_PRE_PMD) {
 		dev_dbg(component->dev, "%s: DSP shutdown\n", __func__);
@@ -879,20 +919,9 @@ static const struct snd_soc_dapm_route tas5805m_audio_map[] = {
 static const struct snd_soc_dapm_widget tas5805m_dapm_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("DAC IN", "Playback", 0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_DAC_E("DAC", NULL, SND_SOC_NOPM, 0, 0,
-		tas5805m_dac_event, SND_SOC_DAPM_PRE_PMD),
+		tas5805m_dac_event, SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 	SND_SOC_DAPM_OUTPUT("OUTA"),
 	SND_SOC_DAPM_OUTPUT("OUTB")
-};
-
-static const struct snd_soc_component_driver soc_codec_dev_tas5805m = {
-	.controls		= tas5805m_snd_controls,
-	.num_controls		= ARRAY_SIZE(tas5805m_snd_controls),
-	.dapm_widgets		= tas5805m_dapm_widgets,
-	.num_dapm_widgets	= ARRAY_SIZE(tas5805m_dapm_widgets),
-	.dapm_routes		= tas5805m_audio_map,
-	.num_dapm_routes	= ARRAY_SIZE(tas5805m_audio_map),
-	.use_pmdown_time	= 1,
-	.endianness		= 1,
 };
 
 static int tas5805m_mute(struct snd_soc_dai *dai, int mute, int direction)
@@ -918,7 +947,7 @@ static int tas5805m_mute(struct snd_soc_dai *dai, int mute, int direction)
 }
 
 static const struct snd_soc_dai_ops tas5805m_dai_ops = {
-	.trigger		= tas5805m_trigger,
+	.trigger		    = tas5805m_trigger,
 	.mute_stream		= tas5805m_mute,
 	.no_capture_mute	= 1,
 };
@@ -1055,10 +1084,67 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	/* Initialize all EQ bands to 0dB (flat response) */
 	for (int i = 0; i < TAS5805M_EQ_BANDS; i++)
 		tas5805m->eq_band[i] = 0;
-	tas5805m->modulation_mode = 0; /* BD mode */
-	tas5805m->switch_freq = 0; /* 768kHz */
-	tas5805m->bridge_mode = 0; /* Normal mode */
 	tas5805m->eq_mode = 0; /* EQ On */
+
+	/* Read modulation mode from device tree (default: Hybrid mode)
+	 * 0 = BD modulation
+	 * 1 = 1SPW modulation
+	 * 2 = Hybrid modulation (default)
+	 * This is not runtime configurable for stability
+	 */
+	tas5805m->modulation_mode = 2; /* Default to Hybrid mode */
+	if (!device_property_read_u32(dev, "ti,modulation-mode", &tas5805m->modulation_mode)) {
+		if (tas5805m->modulation_mode > 2) {
+			dev_warn(dev, "Invalid modulation mode %u, using Hybrid\n", tas5805m->modulation_mode);
+			tas5805m->modulation_mode = 2;
+		}
+		dev_info(dev, "Modulation mode: %s\n", modulation_mode_text[tas5805m->modulation_mode]);
+	} else {
+		dev_dbg(dev, "Modulation mode: Hybrid (default)\n");
+	}
+
+	/* Read switching frequency from device tree (default: 768kHz)
+	 * 0 = 768kHz (default)
+	 * 1 = 384kHz
+	 * 2 = 480kHz
+	 * 3 = 576kHz
+	 * This is not runtime configurable for stability
+	 */
+	tas5805m->switch_freq = 0; /* Default to 768kHz */
+	if (!device_property_read_u32(dev, "ti,switching-freq", &tas5805m->switch_freq)) {
+		if (tas5805m->switch_freq > 3) {
+			dev_warn(dev, "Invalid switching frequency %u, using 768kHz\n", tas5805m->switch_freq);
+			tas5805m->switch_freq = 0;
+		}
+		dev_info(dev, "Switching frequency: %s\n", switch_freq_text[tas5805m->switch_freq]);
+	} else {
+		dev_dbg(dev, "Switching frequency: 768K (default)\n");
+	}
+
+	/* Read bridge mode from device tree (default: normal mode)
+	 * 0 = Normal mode (PBTL disabled)
+	 * 1 = Bridge mode (PBTL enabled)
+	 * This is not runtime configurable to prevent speaker damage
+	 */
+	tas5805m->bridge_mode = 0; /* Default to normal mode */
+	if (device_property_read_bool(dev, "ti,bridge-mode")) {
+		tas5805m->bridge_mode = 1;
+		dev_info(dev, "Bridge mode (PBTL) enabled via device tree\n");
+	} else {
+		dev_dbg(dev, "Normal mode (stereo) enabled (default)\n");
+	}
+
+	/* Read enable-eq-controls from device tree (default: enabled)
+	 * When disabled, EQ band controls are hidden from ALSA
+	 * Useful for secondary DACs (subwoofers) that don't need EQ adjustment
+	 */
+	if (device_property_read_bool(dev, "ti,disable-eq-controls")) {
+		tas5805m->enable_eq_controls = false;
+		dev_info(dev, "EQ band controls disabled via device tree\n");
+	} else {
+		tas5805m->enable_eq_controls = true;
+		dev_dbg(dev, "EQ band controls enabled (default)\n");
+	}
 
 	ret = regulator_enable(tas5805m->pvdd);
 	if (ret < 0) {
@@ -1074,10 +1160,70 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	INIT_WORK(&tas5805m->work, do_work);
 	mutex_init(&tas5805m->lock);
 
+	/* Build component driver dynamically based on EQ controls setting */
+	struct snd_soc_component_driver *soc_codec_dev;
+	struct snd_kcontrol_new *controls;
+	int num_controls;
+
+	soc_codec_dev = devm_kzalloc(dev, sizeof(*soc_codec_dev), GFP_KERNEL);
+	if (!soc_codec_dev) {
+		gpiod_set_value(tas5805m->gpio_pdn_n, 0);
+		regulator_disable(tas5805m->pvdd);
+		return -ENOMEM;
+	}
+
+	if (tas5805m->enable_eq_controls) {
+		/* Allocate and combine base + EQ controls */
+		num_controls = ARRAY_SIZE(tas5805m_snd_controls_base) + 
+		               ARRAY_SIZE(tas5805m_snd_controls_eq);
+		controls = devm_kmemdup(dev, tas5805m_snd_controls_base,
+		                        sizeof(tas5805m_snd_controls_base), GFP_KERNEL);
+		if (!controls) {
+			gpiod_set_value(tas5805m->gpio_pdn_n, 0);
+			regulator_disable(tas5805m->pvdd);
+			return -ENOMEM;
+		}
+		/* Reallocate to fit both arrays */
+		controls = devm_krealloc(dev, controls, 
+		                         num_controls * sizeof(struct snd_kcontrol_new),
+		                         GFP_KERNEL);
+		if (!controls) {
+			gpiod_set_value(tas5805m->gpio_pdn_n, 0);
+			regulator_disable(tas5805m->pvdd);
+			return -ENOMEM;
+		}
+		/* Append EQ controls */
+		memcpy(&controls[ARRAY_SIZE(tas5805m_snd_controls_base)],
+		       tas5805m_snd_controls_eq,
+		       sizeof(tas5805m_snd_controls_eq));
+		dev_dbg(dev, "Registered %d controls (with EQ bands)\n", num_controls);
+	} else {
+		/* Only base controls */
+		num_controls = ARRAY_SIZE(tas5805m_snd_controls_base);
+		controls = devm_kmemdup(dev, tas5805m_snd_controls_base,
+		                        sizeof(tas5805m_snd_controls_base), GFP_KERNEL);
+		if (!controls) {
+			gpiod_set_value(tas5805m->gpio_pdn_n, 0);
+			regulator_disable(tas5805m->pvdd);
+			return -ENOMEM;
+		}
+		dev_dbg(dev, "Registered %d controls (EQ bands disabled)\n", num_controls);
+	}
+
+	/* Build component driver structure */
+	soc_codec_dev->controls = controls;
+	soc_codec_dev->num_controls = num_controls;
+	soc_codec_dev->dapm_widgets = tas5805m_dapm_widgets;
+	soc_codec_dev->num_dapm_widgets = ARRAY_SIZE(tas5805m_dapm_widgets);
+	soc_codec_dev->dapm_routes = tas5805m_audio_map;
+	soc_codec_dev->num_dapm_routes = ARRAY_SIZE(tas5805m_audio_map);
+	soc_codec_dev->use_pmdown_time = 1;
+	soc_codec_dev->endianness = 1;
+
 	/* Don't register through devm. We need to be able to unregister
 	 * the component prior to deasserting PDN#
 	 */
-	ret = snd_soc_register_component(dev, &soc_codec_dev_tas5805m,
+	ret = snd_soc_register_component(dev, soc_codec_dev,
 					 &tas5805m_dai, 1);
 	if (ret < 0) {
 		dev_err(dev, "%s: unable to register codec: %d\n", 

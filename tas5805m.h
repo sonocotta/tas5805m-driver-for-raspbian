@@ -42,6 +42,11 @@
 #define TAS5805M_REG_UNDOCUMENTED_2  0x7e
 #define TAS5805M_REG_PAGE1_UNDOC_0   0x51
 
+/* SDOUT_SEL register values 
+*/
+#define TAS5805M_REG_SDOUT_SEL_POST_DSP 0x0
+#define TAS5805M_REG_SDOUT_SEL_PRE_DSP  0x1
+
 /* Volume control using hardware register TAS5805M_REG_VOL_CTRL (0x4c)
  * Register value to dB mapping:
  *   0x00 = +24.0 dB
