@@ -1028,14 +1028,14 @@ static void do_work(struct work_struct *work)
 	 * delay after the first set of register writes to
 	 * allow the DSP to boot before configuring it.
 	 */
-	usleep_range(50000, 100000);
+	usleep_range(5000, 10000);
 	
 	/* Only send preboot config once per PDN cycle */
 	if (!tas5805m->dsp_initialized) {
 		dev_dbg(&tas5805m->i2c->dev, "%s: sending preboot config\n", __func__);
 		send_cfg(rm, dsp_cfg_preboot, ARRAY_SIZE(dsp_cfg_preboot));
 		// Need to wait until clock is read by the DAC
-		usleep_range(50000, 100000);
+		usleep_range(5000, 10000);
 		if (tas5805m->dsp_cfg_len > 0)
 		{
 			send_cfg(rm, tas5805m->dsp_cfg_data, tas5805m->dsp_cfg_len);

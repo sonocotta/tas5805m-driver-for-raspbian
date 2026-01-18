@@ -1,9 +1,9 @@
 // Definitions for Dual TAS5805M setup
 // dtc -I dts -O dtb -o /boot/overlays/tas58xx-dual.dtbo tas5805m-dual-overlay.dts
-// bash: "sudo dtoverlay tas58xx-dual"
-// /boot/config.txt: "dtoverlay=tas58xx-dual"
-// Primary DAC: TAS5805M@0x2d, GPIO4
-// Secondary DAC: TAS5805M@0x2e, GPIO5
+// bash: "sudo dtoverlay tas58xx-dual <i2creg_primary=...> <pdn_gpio_primary=...> <i2creg_secondary=...> <pdn_gpio_secondary=...>"
+// /boot/config.txt: "dtoverlay=tas58xx-dual<,i2creg_primary=...><,pdn_gpio_primary=...><,i2creg_secondary=...><,pdn_gpio_secondary=...>"
+// Primary DAC defaults: I2C=0x2d, GPIO=4
+// Secondary DAC defaults: I2C=0x2e, GPIO=5
 /dts-v1/;
 /plugin/;
 
@@ -101,5 +101,7 @@
         firmware_secondary = <&codec_secondary>,"ti,dsp-config-name";
         i2creg_primary = <&codec_primary>,"reg:<>";
         i2creg_secondary = <&codec_secondary>,"reg:<>";
+        pdn_gpio_primary = <&codec_primary>,"pdn-gpios:4";
+        pdn_gpio_secondary = <&codec_secondary>,"pdn-gpios:4";
     };
 };

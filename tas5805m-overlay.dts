@@ -1,8 +1,9 @@
 // Definitions for Louder Raspberry
 // dtc -I dts -O dtb -o /boot/overlays/tas58xx.dtbo tas58xx-overlay.dts
-// bash: "sudo dtoverlay tas58xx <i2creg=...> <firmware=...>"
-// /boot/config.txt: "dtoverlay=tas58xx<,i2creg=...><,firmware=...>"
-// i2creg: TAS5805M@0x2c, TAS5806M@0x2c, TAS5822M@0x2c, TAS5825M@0x4c, TAS5825P@0x4c, TAS5828M@0x60
+// bash: "sudo dtoverlay tas58xx <i2creg=...> <pdn_gpio=...> <firmware=...>"
+// /boot/config.txt: "dtoverlay=tas58xx<,i2creg=...><,pdn_gpio=...><,firmware=...>"
+// i2creg: TAS5805M@0x2d (default), TAS5806M@0x2c, TAS5822M@0x2c, TAS5825M@0x4c, TAS5825P@0x4c, TAS5828M@0x60
+// pdn_gpio: GPIO pin number for power down control (default: 4)
 /dts-v1/;
 /plugin/;
 
@@ -71,5 +72,6 @@
     __overrides__ {
             firmware = <&codec>,"ti,dsp-config-name";  
             i2creg = <&codec>,"reg:<>";
+            pdn_gpio = <&codec>,"pdn-gpios:4";
     };
 };
