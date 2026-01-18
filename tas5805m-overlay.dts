@@ -35,8 +35,12 @@
                 ti,modulation-mode = <2>;
                 /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
                 ti,switching-freq = <0>;
+                /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=Crossover */
+                ti,eq-mode = <1>;
                 /* ti,bridge-mode: enables PBTL/bridge mode (omit for normal stereo mode) */
                 /* ti,bridge-mode; */
+                /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
+                ti,mixer-mode = <0>;
             };
         };
     };

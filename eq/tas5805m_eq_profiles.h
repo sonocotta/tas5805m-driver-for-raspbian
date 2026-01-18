@@ -2661,52 +2661,69 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_150[TAS5805M_EQ_PROF
     {0x27, 0x17, 0xca},
 };
 
-static const reg_sequence_eq *tas5805m_eq_profile_left_registers[] = {
-    tas5805m_eq_registers_left_flat,
-    tas5805m_eq_registers_left_lf_60,
-    tas5805m_eq_registers_left_lf_70,
-    tas5805m_eq_registers_left_lf_80,
-    tas5805m_eq_registers_left_lf_90,
-    tas5805m_eq_registers_left_lf_100,
-    tas5805m_eq_registers_left_lf_110,
-    tas5805m_eq_registers_left_lf_120,
-    tas5805m_eq_registers_left_lf_130,
-    tas5805m_eq_registers_left_lf_140,
-    tas5805m_eq_registers_left_lf_150,
-    tas5805m_eq_registers_left_hf_60,
-    tas5805m_eq_registers_left_hf_70,
-    tas5805m_eq_registers_left_hf_80,
-    tas5805m_eq_registers_left_hf_90,
-    tas5805m_eq_registers_left_hf_100,
-    tas5805m_eq_registers_left_hf_110,
-    tas5805m_eq_registers_left_hf_120,
-    tas5805m_eq_registers_left_hf_130,
-    tas5805m_eq_registers_left_hf_140,
-    tas5805m_eq_registers_left_hf_150,
-};
+// static const reg_sequence_eq *tas5805m_eq_profile_left_registers[] = {
+//     tas5805m_eq_registers_left_flat,
+//     tas5805m_eq_registers_left_lf_60,
+//     tas5805m_eq_registers_left_lf_70,
+//     tas5805m_eq_registers_left_lf_80,
+//     tas5805m_eq_registers_left_lf_90,
+//     tas5805m_eq_registers_left_lf_100,
+//     tas5805m_eq_registers_left_lf_110,
+//     tas5805m_eq_registers_left_lf_120,
+//     tas5805m_eq_registers_left_lf_130,
+//     tas5805m_eq_registers_left_lf_140,
+//     tas5805m_eq_registers_left_lf_150,
+//     tas5805m_eq_registers_left_hf_60,
+//     tas5805m_eq_registers_left_hf_70,
+//     tas5805m_eq_registers_left_hf_80,
+//     tas5805m_eq_registers_left_hf_90,
+//     tas5805m_eq_registers_left_hf_100,
+//     tas5805m_eq_registers_left_hf_110,
+//     tas5805m_eq_registers_left_hf_120,
+//     tas5805m_eq_registers_left_hf_130,
+//     tas5805m_eq_registers_left_hf_140,
+//     tas5805m_eq_registers_left_hf_150,
+// };
 
-static const reg_sequence_eq *tas5805m_eq_profile_right_registers[] = {
-    tas5805m_eq_registers_right_flat,
-    tas5805m_eq_registers_right_lf_60,
-    tas5805m_eq_registers_right_lf_70,
-    tas5805m_eq_registers_right_lf_80,
-    tas5805m_eq_registers_right_lf_90,
-    tas5805m_eq_registers_right_lf_100,
-    tas5805m_eq_registers_right_lf_110,
-    tas5805m_eq_registers_right_lf_120,
-    tas5805m_eq_registers_right_lf_130,
-    tas5805m_eq_registers_right_lf_140,
-    tas5805m_eq_registers_right_lf_150,
-    tas5805m_eq_registers_right_hf_60,
-    tas5805m_eq_registers_right_hf_70,
-    tas5805m_eq_registers_right_hf_80,
-    tas5805m_eq_registers_right_hf_90,
-    tas5805m_eq_registers_right_hf_100,
-    tas5805m_eq_registers_right_hf_110,
-    tas5805m_eq_registers_right_hf_120,
-    tas5805m_eq_registers_right_hf_130,
-    tas5805m_eq_registers_right_hf_140,
-    tas5805m_eq_registers_right_hf_150,
+// static const reg_sequence_eq *tas5805m_eq_profile_right_registers[] = {
+//     tas5805m_eq_registers_right_flat,
+//     tas5805m_eq_registers_right_lf_60,
+//     tas5805m_eq_registers_right_lf_70,
+//     tas5805m_eq_registers_right_lf_80,
+//     tas5805m_eq_registers_right_lf_90,
+//     tas5805m_eq_registers_right_lf_100,
+//     tas5805m_eq_registers_right_lf_110,
+//     tas5805m_eq_registers_right_lf_120,
+//     tas5805m_eq_registers_right_lf_130,
+//     tas5805m_eq_registers_right_lf_140,
+//     tas5805m_eq_registers_right_lf_150,
+//     tas5805m_eq_registers_right_hf_60,
+//     tas5805m_eq_registers_right_hf_70,
+//     tas5805m_eq_registers_right_hf_80,
+//     tas5805m_eq_registers_right_hf_90,
+//     tas5805m_eq_registers_right_hf_100,
+//     tas5805m_eq_registers_right_hf_110,
+//     tas5805m_eq_registers_right_hf_120,
+//     tas5805m_eq_registers_right_hf_130,
+//     tas5805m_eq_registers_right_hf_140,
+//     tas5805m_eq_registers_right_hf_150,
+// };
+
+/* Crossover frequency coefficient lookup (maps crossover_freq index to low-pass filter coefficients)
+ * Index 0: OFF (flat/bypass), Index 1-10: 60Hz-150Hz low-pass filters for subwoofer
+ */
+static const reg_sequence_eq *tas5805m_crossover_lf_registers[] = {
+    tas5805m_eq_registers_left_flat,    /* 0: OFF */
+    tas5805m_eq_registers_left_lf_60,   /* 1: 60 Hz */
+    tas5805m_eq_registers_left_lf_70,   /* 2: 70 Hz */
+    tas5805m_eq_registers_left_lf_80,   /* 3: 80 Hz */
+    tas5805m_eq_registers_left_lf_90,   /* 4: 90 Hz */
+    tas5805m_eq_registers_left_lf_100,  /* 5: 100 Hz */
+    tas5805m_eq_registers_left_lf_110,  /* 6: 110 Hz */
+    tas5805m_eq_registers_left_lf_120,  /* 7: 120 Hz */
+    tas5805m_eq_registers_left_lf_130,  /* 8: 130 Hz */
+    tas5805m_eq_registers_left_lf_140,  /* 9: 140 Hz */
+    tas5805m_eq_registers_left_lf_150,  /* 10: 150 Hz */
 };
 
 #ifdef __cplusplus

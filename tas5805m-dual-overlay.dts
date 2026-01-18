@@ -37,6 +37,10 @@
                 /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
                 ti,switching-freq = <0>;
                 /* Normal stereo mode for left/right speakers */
+                /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=Crossover */
+                ti,eq-mode = <1>;
+                /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
+                ti,mixer-mode = <0>;
             };
 
             codec_secondary: tas5805m@2e {
@@ -52,8 +56,10 @@
                 ti,switching-freq = <0>;
                 /* Bridge/PBTL mode for subwoofer (more power from single speaker) */
                 ti,bridge-mode;
-                /* Disable EQ band controls for subwoofer (simplify ALSA mixer) */
-                ti,disable-eq-controls;
+                /* ti,eq-mode: 0=OFF, 1=15-band, 2=Crossover (for subwoofer) */
+                ti,eq-mode = <2>;
+                /* ti,mixer-mode: 1=Mono for subwoofer (mix L+R) */
+                ti,mixer-mode = <1>;
             };
         };
     };

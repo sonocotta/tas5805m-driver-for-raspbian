@@ -46,6 +46,8 @@ $ sudo ./compile-overlay.sh
 
 this will compile the overlay file, put the compiled file under `/boot/overlays` 
 
+### Single DAC Configuration
+
 Next, add to `/boot/config.txt`
 
 ```
@@ -54,6 +56,55 @@ dtoverlay=tas5805m,i2creg=0x2d
 ```
 
 `0x2d` is an I2C address of the device, it can be different on boards, but you should find in the documentation what it is exactly
+
+### Dual DAC Configuration (2.1 Stereo + Subwoofer)
+
+For a 2.1 audio system with stereo speakers and a subwoofer, use the dual overlay:
+
+```
+# Enable Dual DAC (2.1 audio)
+dtoverlay=tas5805m-dual
+```
+
+This configuration:
+- Primary DAC (0x2d, GPIO4): Stereo speakers in normal mode with 15-band EQ
+- Secondary DAC (0x2e, GPIO5): Subwoofer in bridge/PBTL mode with crossover filter
+- Both DACs: Hybrid modulation, 768kHz switching frequency
+- Mixer modes locked via device tree for safety
+
+### Device Tree Properties
+
+The driver supports several device tree properties to configure hardware behavior. These settings are applied at boot and cannot be changed at runtime (for safety and stability):
+
+| Property | Values | Default | Description |
+|----------|--------|---------|-------------|
+| `ti,modulation-mode` | 0=BD, 1=1SPW, 2=Hybrid | 2 (Hybrid) | PWM modulation scheme |
+| `ti,switching-freq` | 0=768K, 1=384K, 2=480K, 3=576K | 0 (768K) | PWM switching frequency |
+| `ti,bridge-mode` | boolean | false | Enable bridge/PBTL mode for mono high-power output |
+| `ti,eq-mode` | 0=OFF, 1=15-band, 2=Crossover | 1 (15-band) | Equalizer mode |
+| `ti,mixer-mode` | 0=Stereo, 1=Mono, 2=Left, 3=Right | 0 (Stereo) | Channel mixer preset |
+
+When `ti,mixer-mode` is set in the device tree, individual mixer sliders are hidden from ALSA. 
+
+Bridge mode is also set in the device tree and do not get changed on the fly. This prevents accidental changes that could damage speakers (especially important for bridge mode and subwoofers).
+
+Example custom configuration in device tree:
+
+```dts
+tas5805m@2d {
+    compatible = "ti,tas5805m";
+    reg = <0x2d>;
+    pvdd-supply = <&vdd_3v3_reg>;
+    pdn-gpios = <&gpio 4 0>;
+    ti,modulation-mode = <2>;  /* Hybrid */
+    ti,switching-freq = <0>;   /* 768kHz */
+    ti,bridge-mode;            /* Enable PBTL mode */
+    ti,eq-mode = <0>;          /* EQ disabled */
+    ti,mixer-mode = <1>;       /* Mono mode */
+};
+```
+
+### Optional Settings
 
 You may also comment out built-in audio and HDMI if you're running headless
 
@@ -191,11 +242,13 @@ maintains the same audio performance level as the BD Modulation. In order to min
 low switching frequency (For example, Fsw = 384 kHz) with proper LC filter (15 µH + 0.68 µF or 22 µH + 0.68
 µF) is recommended.
 
-Hybrid modulation is fully supported and can be selected via the "Modulation Scheme" ALSA control.
+Hybrid modulation is the default and can be changed via device tree (`ti,modulation-mode`). **Note:** Modulation mode is not runtime configurable for stability and is set at boot via device tree.
 
 ### Driver Switching frequency
 
-TAS5805M supports different switching frequencies, which mostly affect the balance between output filter losses and EMI noise. Below is the recommendation from TI
+TAS5805M supports different switching frequencies (384kHz, 480kHz, 576kHz, 768kHz), which mostly affect the balance between output filter losses and EMI noise. The switching frequency is configured via device tree (`ti,switching-freq`) and defaults to 768kHz. **Note:** Switching frequency is not runtime configurable for stability and is set at boot via device tree.
+
+Below is the recommendation from TI
 
 ![image](https://github.com/user-attachments/assets/72d7c8cf-1e47-4b92-b191-c7f4a6728bd0)
 
@@ -207,12 +260,15 @@ TAS5805M supports different switching frequencies, which mostly affect the balan
 
 ### Bridge mode
 
-TAS5805M has a bridge mode of operation, that causes both output drivers to synchronize and push out the same audio with double the power.  In that case single speaker is expected to be connected across channels, so remember to reconnect speakers if you're changing to bridge mode. 
+TAS5805M has a bridge mode of operation (PBTL), that causes both output drivers to synchronize and push out the same audio with double the power. In that case a single speaker is expected to be connected across channels, so remember to reconnect speakers if you're changing to bridge mode.
+
+**Important:** Bridge mode is configured via device tree (`ti,bridge-mode`) and cannot be changed at runtime. This prevents accidental switching that could damage speakers.
 
 |  | BTL | PBTL |
 |---|---|---|
-| Descriotion | Bridge Tied Load, Stereo | Parallel Bridge Tied Load, Mono |
+| Description | Bridge Tied Load, Stereo | Parallel Bridge Tied Load, Mono |
 | Rated Power | 2×23W (8-Ω, 21 V, THD+N=1%) | 45W (4-Ω, 21 V, THD+N=1%) |
+| Configuration | Normal mode (default) | `ti,bridge-mode` in device tree |
 | Schematics | ![image](https://github.com/sonocotta/esp32-audio-dock/assets/5459747/e7ada8c0-c906-4c08-ae99-be9dfe907574) | ![image](https://github.com/sonocotta/esp32-audio-dock/assets/5459747/55f5315a-03eb-47c8-9aea-51e3eb3757fe)
 | Speaker Connection | ![image](https://github.com/user-attachments/assets/8e5e9c38-2696-419b-9c5b-d278c655b0db) | ![image](https://github.com/user-attachments/assets/8aba6273-84c4-45a8-9808-93317d794a44)
 
@@ -290,13 +346,56 @@ make all && sudo make install && sudo reboot
 
 After reboot, you can access all settings through ALSA. Use `alsamixer` for interactive control or `amixer` for scripting. All changes take effect immediately without requiring a reboot.
 
+### Control Availability
+
+The available ALSA controls depend on your device tree configuration:
+
+**Always Available:**
+- Digital Volume
+- Analog Gain
+- Equalizer (on/off toggle)
+
+**Conditionally Available:**
+- **15-band EQ sliders**: Only when `ti,eq-mode=<1>` (15-band mode)
+- **Crossover Frequency**: Only when `ti,eq-mode=<2>` (Crossover mode)
+- **Mixer Mode + Individual Sliders**: Only when `ti,mixer-mode` is **NOT** set in device tree
+
+**Example Configurations:**
+
+*Single DAC (default):*
+- Digital Volume, Analog Gain, Equalizer
+- 15 EQ band sliders (00020 Hz - 16000 Hz)
+- Mixer Mode control
+- 4 individual mixer sliders (L2L, R2L, L2R, R2R)
+
+*Dual DAC Primary (2.0 stereo):*
+- Digital Volume, Analog Gain, Equalizer
+- 15 EQ band sliders
+- No mixer controls (locked to Stereo via device tree)
+
+*Dual DAC Secondary (0.1 subwoofer):*
+- Digital Volume, Analog Gain, Equalizer
+- Crossover Frequency slider (OFF, 60-150Hz)
+- No mixer controls (locked to Mono via device tree)
+
 Let's go through the available controls:
 
 ![image](https://github.com/user-attachments/assets/217430fa-6c53-4b25-8143-d74a6e383de3)
 
 ### EQ controls
 
-TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's transfer function using BQ coefficients. In a practical sense, it allows us to draw pretty much any curve in a frequency response. I decided to split the audio range into 15 sections, defining for each -15Db..+15Db adjustment range and appropriate bandwidth to cause mild overlap. This allows both to keep the curve flat enough to not cause distortions even in extreme settings but also allows a wide range of transfer characteristics. This EQ setup is a common approach for full-range speakers, the Subwoofer specific setup is underway.
+TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's transfer function using BQ coefficients. In a practical sense, it allows us to draw pretty much any curve in a frequency response. 
+
+The driver supports two EQ modes, configured via device tree (`ti,eq-mode`):
+
+1. **15-band Parametric EQ** (default, `ti,eq-mode=<1>`): Full-range speakers with -15dB to +15dB adjustment per band
+2. **Crossover Filter** (`ti,eq-mode=<2>`): Low-pass filter for subwoofers with adjustable cutoff frequency (OFF, 60-150Hz)
+
+**Note:** The EQ mode is set at boot via device tree and determines which ALSA controls are available. When set to OFF (`ti,eq-mode=<0>`), no EQ controls appear.
+
+#### 15-Band Parametric EQ
+
+I decided to split the audio range into 15 sections, defining for each -15Db..+15Db adjustment range and appropriate bandwidth to cause mild overlap. This allows both to keep the curve flat enough to not cause distortions even in extreme settings but also allows a wide range of transfer characteristics. This EQ setup is a common approach for full-range speakers.
 
 | Band | Center Frequency (Hz) | Frequency Range (Hz) | Q-Factor (Approx.) |
 |------|-----------------------|----------------------|--------------------|
@@ -325,17 +424,37 @@ Here are a few examples of different configurations that can be created with the
 
 ### Mixer settings
 
-Mixer settings allow to mix channel signals and route them to the appropriate channel. The typical setup for the mixer is to send Left channel audio to the Left driver, and Right to the Right 
+Mixer settings control how left and right input channels are routed to the output channels. The driver provides two ways to configure the mixer:
 
-TODO: add mixer values table
+#### Device Tree Configuration (Recommended)
+
+Set `ti,mixer-mode` in device tree to lock the mixer configuration. This prevents runtime changes that could damage speakers:
+
+| Mode | Value | L→L | R→L | L→R | R→R | Use Case |
+|------|-------|-----|-----|-----|-----|----------|
+| Stereo | 0 | 0dB | Mute | Mute | 0dB | Normal stereo speakers (default) |
+| Mono | 1 | -6dB | -6dB | -6dB | -6dB | Subwoofer (mix L+R with compensation) |
+| Left | 2 | 0dB | Mute | 0dB | Mute | Both outputs from left channel |
+| Right | 3 | Mute | 0dB | Mute | 0dB | Both outputs from right channel |
+
+When `ti,mixer-mode` is set, all mixer controls are hidden from ALSA.
+
+#### Runtime Configuration
+
+If `ti,mixer-mode` is **not** set in device tree, the driver exposes both simplified and advanced mixer controls:
+
+1. **Mixer Mode** control: Select preset (Stereo/Mono/Left/Right) - applies values from table above
+2. **Individual sliders** (L2L, R2L, L2R, R2R): Fine-tune each routing with -110dB to 0dB range
+
+The typical setup for the mixer is to send Left channel audio to the Left driver, and Right to the Right:
 
 ![image](https://github.com/user-attachments/assets/d1a24adf-a417-48a1-b35d-39ee9d199587)
 
-A common alternative is to combine both channels into true Mono (you need to reduce both to -3Db to compensate for signal doubling)
+A common alternative is to combine both channels into true Mono (reduced to -6dB to compensate for signal doubling):
 
 ![image](https://github.com/user-attachments/assets/390d1ecb-e3cd-4fff-8951-80fc318ec7d9)
 
-Of course, you can decide to use a single channel or a mixup of two, just keep in mind, that the sum on the signal may cause clipping if not compensated properly.
+**Warning:** When manually adjusting mixer sliders, keep in mind that the sum of signals may cause clipping if not compensated properly. For production systems, use device tree configuration to prevent accidents.
 
 ## Known issues
 
