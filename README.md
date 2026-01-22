@@ -67,8 +67,8 @@ dtoverlay=tas5805m-dual
 ```
 
 This configuration:
-- Primary DAC (0x2d, GPIO4): Stereo speakers in normal mode with 15-band EQ
-- Secondary DAC (0x2e, GPIO5): Subwoofer in bridge/PBTL mode with crossover filter
+- Primary DAC (0x2d, GPIO4): Stereo speakers in normal mode with HF crossover (high-pass filter)
+- Secondary DAC (0x2e, GPIO5): Subwoofer in bridge/PBTL mode with LF crossover (low-pass filter)
 - Both DACs: Hybrid modulation, 768kHz switching frequency
 - Mixer modes locked via device tree for safety
 
@@ -81,7 +81,7 @@ The driver supports several device tree properties to configure hardware behavio
 | `ti,modulation-mode` | 0=BD, 1=1SPW, 2=Hybrid | 2 (Hybrid) | PWM modulation scheme |
 | `ti,switching-freq` | 0=768K, 1=384K, 2=480K, 3=576K | 0 (768K) | PWM switching frequency |
 | `ti,bridge-mode` | boolean | false | Enable bridge/PBTL mode for mono high-power output |
-| `ti,eq-mode` | 0=OFF, 1=15-band, 2=Crossover | 1 (15-band) | Equalizer mode |
+| `ti,eq-mode` | 0=OFF, 1=15-band, 2=LF Crossover, 3=HF Crossover | 1 (15-band) | Equalizer mode |
 | `ti,mixer-mode` | 0=Stereo, 1=Mono, 2=Left, 3=Right | 0 (Stereo) | Channel mixer preset |
 
 When `ti,mixer-mode` is set in the device tree, individual mixer sliders are hidden from ALSA. 
@@ -357,7 +357,7 @@ The available ALSA controls depend on your device tree configuration:
 
 **Conditionally Available:**
 - **15-band EQ sliders**: Only when `ti,eq-mode=<1>` (15-band mode)
-- **Crossover Frequency**: Only when `ti,eq-mode=<2>` (Crossover mode)
+- **Crossover Frequency**: Only when `ti,eq-mode=<2>` (LF Crossover) or `ti,eq-mode=<3>` (HF Crossover)
 - **Mixer Mode + Individual Sliders**: Only when `ti,mixer-mode` is **NOT** set in device tree
 
 **Example Configurations:**
@@ -370,12 +370,12 @@ The available ALSA controls depend on your device tree configuration:
 
 *Dual DAC Primary (2.0 stereo):*
 - Digital Volume, Analog Gain, Equalizer
-- 15 EQ band sliders
+- Crossover Frequency slider (OFF, 60-150Hz) for HF crossover
 - No mixer controls (locked to Stereo via device tree)
 
 *Dual DAC Secondary (0.1 subwoofer):*
 - Digital Volume, Analog Gain, Equalizer
-- Crossover Frequency slider (OFF, 60-150Hz)
+- Crossover Frequency slider (OFF, 60-150Hz) for LF crossover
 - No mixer controls (locked to Mono via device tree)
 
 Let's go through the available controls:
@@ -386,12 +386,44 @@ Let's go through the available controls:
 
 TAS5805M DAC has a powerful 15-channel EQ, that allows defining each channel's transfer function using BQ coefficients. In a practical sense, it allows us to draw pretty much any curve in a frequency response. 
 
-The driver supports two EQ modes, configured via device tree (`ti,eq-mode`):
+The driver supports three EQ modes, configured via device tree (`ti,eq-mode`):
 
 1. **15-band Parametric EQ** (default, `ti,eq-mode=<1>`): Full-range speakers with -15dB to +15dB adjustment per band
-2. **Crossover Filter** (`ti,eq-mode=<2>`): Low-pass filter for subwoofers with adjustable cutoff frequency (OFF, 60-150Hz)
+2. **LF Crossover Filter** (`ti,eq-mode=<2>`): Low-pass filter for subwoofers with adjustable cutoff frequency (OFF, 60-150Hz)
+3. **HF Crossover Filter** (`ti,eq-mode=<3>`): High-pass filter for satellite speakers with adjustable cutoff frequency (OFF, 60-150Hz)
 
-**Note:** The EQ mode is set at boot via device tree and determines which ALSA controls are available. When set to OFF (`ti,eq-mode=<0>`), no EQ controls appear.
+**Note:** The EQ mode is set at boot via device tree and determines which ALSA controls are available. When set to OFF (`ti,eq-mode=<0>`), no EQ controls appear. Both crossover modes use the same "Crossover Frequency" slider but apply different filter types (low-pass vs high-pass).
+
+#### EQ Mode ALSA Controls
+
+The driver dynamically registers different ALSA controls based on the EQ mode configured in the device tree:
+
+**15-Band Parametric EQ Mode** (`ti,eq-mode=<1>`):
+- Equalizer: On/Off toggle
+- 15 frequency band sliders (00020 Hz through 16000 Hz)
+- Each band adjustable from -15dB to +15dB
+
+![Placeholder: 15-band EQ in alsamixer]
+
+**LF Crossover Mode** (`ti,eq-mode=<2>`) - For subwoofers:
+- Equalizer: On/Off toggle  
+- Crossover Frequency: Enumerated control (OFF, 60Hz, 70Hz, 80Hz, 90Hz, 100Hz, 110Hz, 120Hz, 130Hz, 140Hz, 150Hz)
+- Applies low-pass filter with 4th order Linkwitz-Riley response
+
+![Placeholder: LF Crossover in alsamixer]
+
+**HF Crossover Mode** (`ti,eq-mode=<3>`) - For satellite speakers:
+- Equalizer: On/Off toggle
+- Crossover Frequency: Enumerated control (OFF, 60Hz, 70Hz, 80Hz, 90Hz, 100Hz, 110Hz, 120Hz, 130Hz, 140Hz, 150Hz)
+- Applies high-pass filter with 4th order Linkwitz-Riley response
+
+![Placeholder: HF Crossover in alsamixer]
+
+**EQ Disabled Mode** (`ti,eq-mode=<0>`):
+- Equalizer: On/Off toggle (no effect, EQ bypassed)
+- No frequency controls available
+
+All EQ modes include the "Equalizer" control which enables/disables the entire EQ processing. This allows runtime control even when using crossover filters.
 
 #### 15-Band Parametric EQ
 
@@ -460,7 +492,7 @@ A common alternative is to combine both channels into true Mono (reduced to -6dB
 
 ### DSP initialization timing
 
-The driver initializes the DSP on the first PLAY/RESUME event rather than during probe. This is by design: the TAS5805M requires a stable I2S clock to be present for at least 5ms before DSP configuration can be applied. If settings are written before the clock is stable, they will be ignored by the device.
+The driver initializes the DSP when the PCM trigger START event fires, ensuring the I2S clock is already stable. In multi-codec setups (like the dual DAC configuration), the driver maintains a global list of all TAS5805M devices and triggers initialization for all of them simultaneously when playback starts. This ensures both primary and secondary DACs are configured correctly regardless of when audio playback begins.
 
 ### ALSA state restoration
 

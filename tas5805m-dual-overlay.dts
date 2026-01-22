@@ -38,7 +38,7 @@
                 ti,switching-freq = <0>;
                 /* Normal stereo mode for left/right speakers */
                 /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=LF Crossover, 3=HF Crossover */
-                ti,eq-mode = <1>;
+                ti,eq-mode = <3>;
                 /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
                 ti,mixer-mode = <0>;
             };
