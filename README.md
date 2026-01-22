@@ -403,21 +403,23 @@ The driver dynamically registers different ALSA controls based on the EQ mode co
 - 15 frequency band sliders (00020 Hz through 16000 Hz)
 - Each band adjustable from -15dB to +15dB
 
-![Placeholder: 15-band EQ in alsamixer]
+<img width="1568" height="433" alt="image" src="https://github.com/user-attachments/assets/d85b934c-6b2d-4548-92cc-8908394258b2" />
 
 **LF Crossover Mode** (`ti,eq-mode=<2>`) - For subwoofers:
 - Equalizer: On/Off toggle  
 - Crossover Frequency: Enumerated control (OFF, 60Hz, 70Hz, 80Hz, 90Hz, 100Hz, 110Hz, 120Hz, 130Hz, 140Hz, 150Hz)
 - Applies low-pass filter with 4th order Linkwitz-Riley response
 
-![Placeholder: LF Crossover in alsamixer]
+<img width="459" height="433" alt="image" src="https://github.com/user-attachments/assets/12084150-85d5-4ec2-a355-b41cdc9964cc" />
+
 
 **HF Crossover Mode** (`ti,eq-mode=<3>`) - For satellite speakers:
 - Equalizer: On/Off toggle
 - Crossover Frequency: Enumerated control (OFF, 60Hz, 70Hz, 80Hz, 90Hz, 100Hz, 110Hz, 120Hz, 130Hz, 140Hz, 150Hz)
 - Applies high-pass filter with 4th order Linkwitz-Riley response
 
-![Placeholder: HF Crossover in alsamixer]
+<img width="464" height="434" alt="image" src="https://github.com/user-attachments/assets/0f84c584-6d27-4694-8227-9ad7c22462b9" />
+
 
 **EQ Disabled Mode** (`ti,eq-mode=<0>`):
 - Equalizer: On/Off toggle (no effect, EQ bypassed)
