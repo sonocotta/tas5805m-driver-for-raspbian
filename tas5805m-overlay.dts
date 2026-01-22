@@ -1,8 +1,9 @@
 // Definitions for Louder Raspberry
 // dtc -I dts -O dtb -o /boot/overlays/tas58xx.dtbo tas58xx-overlay.dts
-// bash: "sudo dtoverlay tas58xx <i2creg=...> <firmware=...>"
-// /boot/config.txt: "dtoverlay=tas58xx<,i2creg=...><,firmware=...>"
-// i2creg: TAS5805M@0x2c, TAS5806M@0x2c, TAS5822M@0x2c, TAS5825M@0x4c, TAS5825P@0x4c, TAS5828M@0x60
+// bash: "sudo dtoverlay tas58xx <i2creg=...> <pdn_gpio=...> <firmware=...>"
+// /boot/config.txt: "dtoverlay=tas58xx<,i2creg=...><,pdn_gpio=...><,firmware=...>"
+// i2creg: TAS5805M@0x2d (default), TAS5806M@0x2c, TAS5822M@0x2c, TAS5825M@0x4c, TAS5825P@0x4c, TAS5828M@0x60
+// pdn_gpio: GPIO pin number for power down control (default: 4)
 /dts-v1/;
 /plugin/;
 
@@ -31,6 +32,16 @@
 //              pvdd-supply = <&audiopwr>;
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 4 0>;
+                /* ti,modulation-mode: 0=BD, 1=1SPW, 2=Hybrid (default) */
+                ti,modulation-mode = <2>;
+                /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
+                ti,switching-freq = <0>;
+                /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=Crossover */
+                ti,eq-mode = <1>;
+                /* ti,bridge-mode: enables PBTL/bridge mode (omit for normal stereo mode) */
+                /* ti,bridge-mode; */
+                /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
+                ti,mixer-mode = <0>;
             };
         };
     };
@@ -61,5 +72,6 @@
     __overrides__ {
             firmware = <&codec>,"ti,dsp-config-name";  
             i2creg = <&codec>,"reg:<>";
+            pdn_gpio = <&codec>,"pdn-gpios:4";
     };
 };

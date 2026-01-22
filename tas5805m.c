@@ -13,6 +13,8 @@
 //
 // It has been simplified a little and reworked for the 5.x ALSA SoC API.
 
+#define DEBUG
+
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
@@ -33,6 +35,7 @@
 #include <sound/tlv.h>
 #include "tas5805m.h"
 #include "eq/tas5805m_eq.h"
+#include "eq/tas5805m_eq_profiles.h"
 
 /* Text arrays for enum controls */
 static const char * const dac_mode_text[] = {
@@ -58,6 +61,35 @@ static const char * const switch_freq_text[] = {
 	"576K"   /* 576kHz */
 };
 
+/* EQ mode types (configured via device tree) */
+enum tas5805m_eq_mode_type {
+	TAS5805M_EQ_MODE_OFF = 0,
+	TAS5805M_EQ_MODE_15BAND = 1,
+	TAS5805M_EQ_MODE_LF_CROSSOVER = 2,
+	TAS5805M_EQ_MODE_HF_CROSSOVER = 3,
+};
+
+static const char * const crossover_freq_text[] = {
+	"OFF",
+	"60 Hz",
+	"70 Hz",
+	"80 Hz",
+	"90 Hz",
+	"100 Hz",
+	"110 Hz",
+	"120 Hz",
+	"130 Hz",
+	"140 Hz",
+	"150 Hz",
+};
+
+static const char * const mixer_mode_text[] = {
+	"Stereo",  /* Normal stereo: L->L, R->R at 0dB */
+	"Mono",    /* Mono mix: all paths at -6dB */
+	"Left",    /* Left only: L->L, L->R at 0dB */
+	"Right",   /* Right only: R->L, R->R at 0dB */
+};
+
 /* This sequence of register writes must always be sent, prior to the
  * 5ms delay while we wait for the DSP to boot.
  */
@@ -73,6 +105,7 @@ static const uint8_t dsp_cfg_preboot[] = {
 	REG_PAGE, TAS5805M_REG_PAGE_0, 
 	REG_BOOK, TAS5805M_BOOK_CONTROL_PORT, 
 	TAS5805M_REG_DEVICE_CTRL_2, TAS5805M_DCTRL2_MODE_HIZ,
+	TAS5805M_REG_SDOUT_SEL, TAS5805M_REG_SDOUT_SEL_PRE_DSP
 };
 
 #define SET_BOOK_AND_PAGE(rm, book, page) \
@@ -98,18 +131,27 @@ struct tas5805m_priv {
 	int						mixer_r2l;  /* Right to Left mixer gain in dB */
 	int						mixer_l2r;  /* Left to Right mixer gain in dB */
 	int						mixer_r2r;  /* Right to Right mixer gain in dB */
+	unsigned int			mixer_mode;  /* Simplified mixer mode: 0=Stereo, 1=Mono, 2=Left, 3=Right */
+	bool					mixer_mode_from_dt;  /* True if mixer mode is set from device tree */
 	int						eq_band[TAS5805M_EQ_BANDS];  /* EQ band gains in dB */
 	unsigned int			modulation_mode;
 	unsigned int			switch_freq;
 	unsigned int			bridge_mode;
 	unsigned int			eq_mode;
+	enum tas5805m_eq_mode_type	eq_mode_type;  /* EQ mode type from device tree */
+	unsigned int			crossover_freq;  /* Crossover frequency index */
 	bool					is_powered;
 	bool					is_muted;
 	bool					dsp_initialized;
 
 	struct work_struct		work;
 	struct mutex			lock;
+	struct list_head		list;  /* Linked list of all TAS5805M devices */
 };
+
+/* Global list of all TAS5805M devices and lock */
+static LIST_HEAD(tas5805m_device_list);
+static DEFINE_MUTEX(tas5805m_list_mutex);
 
 static void tas5805m_decode_faults(struct device *dev, unsigned int chan,
 				   unsigned int global1, unsigned int global2,
@@ -290,13 +332,13 @@ static void tas5805m_refresh(struct tas5805m_priv *tas5805m)
 	tas5805m_map_db_to_9_23(tas5805m->mixer_r2r, mixer_buf);
 	regmap_bulk_write(rm, TAS5805M_REG_RIGHT_TO_RIGHT_GAIN, mixer_buf, 4);
 
-	/* Write EQ band registers
+	/* Write EQ band registers or apply crossover
 	 * Apply EQ coefficients for each band based on stored dB values
 	 */
-	if (true) { 
+	if (tas5805m->eq_mode_type == TAS5805M_EQ_MODE_15BAND) { 
 		int current_page = -1;
 		
-		dev_dbg(&tas5805m->i2c->dev, "%s: applying EQ bands\n", __func__);
+		dev_dbg(&tas5805m->i2c->dev, "%s: applying 15-band EQ\n", __func__);
 		
 		for (int band = 0; band < TAS5805M_EQ_BANDS; band++) {
 			int db_value = tas5805m->eq_band[band];
@@ -314,6 +356,62 @@ static void tas5805m_refresh(struct tas5805m_priv *tas5805m)
 				regmap_write(rm, reg_value->offset, reg_value->value);
 			}
 		}
+	} else if (tas5805m->eq_mode_type == TAS5805M_EQ_MODE_LF_CROSSOVER) {
+		/* Apply LF crossover filter coefficients */
+		unsigned int freq_index = tas5805m->crossover_freq;
+		
+		if (freq_index >= ARRAY_SIZE(crossover_freq_text)) {
+			dev_warn(&tas5805m->i2c->dev, "%s: Invalid crossover frequency index %u, using OFF\n", __func__, freq_index);
+			freq_index = 0;
+		}
+		
+		dev_dbg(&tas5805m->i2c->dev, "%s: applying LF crossover filter: frequency=%s\n", 
+				__func__, crossover_freq_text[freq_index]);
+		
+		/* Get the appropriate coefficient array (low-pass filter) */
+		const reg_sequence_eq *coefficients = tas5805m_crossover_lf_registers[freq_index];
+		int current_page = -1;
+		
+		/* Apply all coefficient registers (3 bands * 5 coefficients * 4 registers = 60 registers) */
+		for (int i = 0; i < TAS5805M_EQ_PROFILE_REG_PER_STEP; i++) {
+			const reg_sequence_eq *reg_value = &coefficients[i];
+			
+			if (reg_value->page != current_page) {
+				current_page = reg_value->page;
+				SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_EQ, reg_value->page);
+			}
+			
+			regmap_write(rm, reg_value->offset, reg_value->value);
+		}
+	} else if (tas5805m->eq_mode_type == TAS5805M_EQ_MODE_HF_CROSSOVER) {
+		/* Apply HF crossover filter coefficients */
+		unsigned int freq_index = tas5805m->crossover_freq;
+		
+		if (freq_index >= ARRAY_SIZE(crossover_freq_text)) {
+			dev_warn(&tas5805m->i2c->dev, "%s: Invalid crossover frequency index %u, using OFF\n", __func__, freq_index);
+			freq_index = 0;
+		}
+		
+		dev_dbg(&tas5805m->i2c->dev, "%s: applying HF crossover filter: frequency=%s\n", 
+				__func__, crossover_freq_text[freq_index]);
+		
+		/* Get the appropriate coefficient array (high-pass filter) */
+		const reg_sequence_eq *coefficients = tas5805m_crossover_hf_registers[freq_index];
+		int current_page = -1;
+		
+		/* Apply all coefficient registers (3 bands * 5 coefficients * 4 registers = 60 registers) */
+		for (int i = 0; i < TAS5805M_EQ_PROFILE_REG_PER_STEP; i++) {
+			const reg_sequence_eq *reg_value = &coefficients[i];
+			
+			if (reg_value->page != current_page) {
+				current_page = reg_value->page;
+				SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_EQ, reg_value->page);
+			}
+			
+			regmap_write(rm, reg_value->offset, reg_value->value);
+		}
+	} else {
+		dev_dbg(&tas5805m->i2c->dev, "%s: EQ mode is OFF\n", __func__);
 	}
 
 	/* Return to control port page 0 */	
@@ -436,8 +534,6 @@ static int tas5805m_again_put(struct snd_kcontrol *kcontrol,
 	unsigned int reg_value;
 	int ret = 0;
 
-	dev_dbg(component->dev, "%s(control_value=%u) entered\n", __func__, control_value);
-
 	if (control_value > TAS5805M_AGAIN_MIN)
 		return -EINVAL;
 
@@ -537,24 +633,6 @@ static int tas5805m_enum_put(struct snd_kcontrol *kcontrol,
 }
 
 /* Define enum control structures */
-static struct tas5805m_enum_ctrl modulation_mode_ctrl = {
-	.texts = modulation_mode_text,
-	.num_items = ARRAY_SIZE(modulation_mode_text),
-	.offset = offsetof(struct tas5805m_priv, modulation_mode),
-};
-
-static struct tas5805m_enum_ctrl switch_freq_ctrl = {
-	.texts = switch_freq_text,
-	.num_items = ARRAY_SIZE(switch_freq_text),
-	.offset = offsetof(struct tas5805m_priv, switch_freq),
-};
-
-static struct tas5805m_enum_ctrl bridge_mode_ctrl = {
-	.texts = dac_mode_text,
-	.num_items = ARRAY_SIZE(dac_mode_text),
-	.offset = offsetof(struct tas5805m_priv, bridge_mode),
-};
-
 static struct tas5805m_enum_ctrl eq_mode_ctrl = {
 	.texts = eq_mode_text,
 	.num_items = ARRAY_SIZE(eq_mode_text),
@@ -709,8 +787,149 @@ static int tas5805m_eq_put(struct snd_kcontrol *kcontrol,
 	.private_value = xband,\
 }
 
+/* Crossover control handlers */
+static int tas5805m_crossover_info(struct snd_kcontrol *kcontrol,
+				   struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_ENUMERATED;
+	uinfo->count = 1;
+	uinfo->value.enumerated.items = ARRAY_SIZE(crossover_freq_text);
 
-static const struct snd_kcontrol_new tas5805m_snd_controls[] = {
+	if (uinfo->value.enumerated.item >= uinfo->value.enumerated.items)
+		uinfo->value.enumerated.item = uinfo->value.enumerated.items - 1;
+
+	strcpy(uinfo->value.enumerated.name,
+	       crossover_freq_text[uinfo->value.enumerated.item]);
+
+	return 0;
+}
+
+static int tas5805m_crossover_get(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
+
+	ucontrol->value.enumerated.item[0] = tas5805m->crossover_freq;
+
+	return 0;
+}
+
+static int tas5805m_crossover_put(struct snd_kcontrol *kcontrol,
+				  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
+	unsigned int val = ucontrol->value.enumerated.item[0];
+	int ret = 0;
+
+	if (val >= ARRAY_SIZE(crossover_freq_text))
+		return -EINVAL;
+
+	mutex_lock(&tas5805m->lock);
+	if (tas5805m->crossover_freq != val) {
+		tas5805m->crossover_freq = val;
+		dev_dbg(component->dev, "%s: set crossover=%s (is_powered=%d)\n",
+				__func__, crossover_freq_text[val], tas5805m->is_powered);
+		if (tas5805m->is_powered)
+			tas5805m_refresh(tas5805m);
+		else
+			dev_dbg(component->dev, "%s: Crossover change deferred until power-up\n",
+					__func__);
+		ret = 1;
+	}
+	mutex_unlock(&tas5805m->lock);
+
+	return ret;
+}
+
+/* Mixer mode control handlers */
+static int tas5805m_mixer_mode_info(struct snd_kcontrol *kcontrol,
+								struct snd_ctl_elem_info *uinfo)
+{
+	uinfo->type = SNDRV_CTL_ELEM_TYPE_ENUMERATED;
+	uinfo->count = 1;
+	uinfo->value.enumerated.items = ARRAY_SIZE(mixer_mode_text);
+
+	if (uinfo->value.enumerated.item >= uinfo->value.enumerated.items)
+		uinfo->value.enumerated.item = uinfo->value.enumerated.items - 1;
+
+	strcpy(uinfo->value.enumerated.name,
+	       mixer_mode_text[uinfo->value.enumerated.item]);
+
+	return 0;
+}
+
+static int tas5805m_mixer_mode_get(struct snd_kcontrol *kcontrol,
+								  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
+
+	ucontrol->value.enumerated.item[0] = tas5805m->mixer_mode;
+
+	return 0;
+}
+
+static int tas5805m_mixer_mode_put(struct snd_kcontrol *kcontrol,
+								  struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component = snd_soc_kcontrol_component(kcontrol);
+	struct tas5805m_priv *tas5805m = snd_soc_component_get_drvdata(component);
+	unsigned int val = ucontrol->value.enumerated.item[0];
+	int ret = 0;
+
+	if (val >= ARRAY_SIZE(mixer_mode_text))
+		return -EINVAL;
+
+	mutex_lock(&tas5805m->lock);
+	if (tas5805m->mixer_mode != val) {
+		tas5805m->mixer_mode = val;
+		
+		/* Apply preset mixer values based on mode */
+		switch (val) {
+		case 0: /* Stereo */
+			tas5805m->mixer_l2l = TAS5805M_MIXER_MAX_DB;   /* 0dB */
+			tas5805m->mixer_r2l = TAS5805M_MIXER_MIN_DB; /* Mute */
+			tas5805m->mixer_l2r = TAS5805M_MIXER_MIN_DB; /* Mute */
+			tas5805m->mixer_r2r = TAS5805M_MIXER_MAX_DB;   /* 0dB */
+			break;
+		case 1: /* Mono */
+			tas5805m->mixer_l2l = TAS5805M_MIXER_HALFMAX_DB;  /* -6dB */
+			tas5805m->mixer_r2l = TAS5805M_MIXER_HALFMAX_DB;  /* -6dB */
+			tas5805m->mixer_l2r = TAS5805M_MIXER_HALFMAX_DB;  /* -6dB */
+			tas5805m->mixer_r2r = TAS5805M_MIXER_HALFMAX_DB;  /* -6dB */
+			break;
+		case 2: /* Left */
+			tas5805m->mixer_l2l = TAS5805M_MIXER_MAX_DB;   /* 0dB */
+			tas5805m->mixer_r2l = TAS5805M_MIXER_MIN_DB; /* Mute */
+			tas5805m->mixer_l2r = TAS5805M_MIXER_MAX_DB;   /* 0dB */
+			tas5805m->mixer_r2r = TAS5805M_MIXER_MIN_DB; /* Mute */
+			break;
+		case 3: /* Right */
+			tas5805m->mixer_l2l = TAS5805M_MIXER_MIN_DB; /* Mute */
+			tas5805m->mixer_r2l = TAS5805M_MIXER_MAX_DB;   /* 0dB */
+			tas5805m->mixer_l2r = TAS5805M_MIXER_MIN_DB; /* Mute */
+			tas5805m->mixer_r2r = TAS5805M_MIXER_MAX_DB;   /* 0dB */
+			break;
+		}
+		
+		dev_dbg(component->dev, "%s: set mixer_mode=%s (is_powered=%d)\n",
+				__func__, mixer_mode_text[val], tas5805m->is_powered);
+		if (tas5805m->is_powered)
+			tas5805m_refresh(tas5805m);
+		else
+			dev_dbg(component->dev, "%s: Mixer mode change deferred until power-up\n",
+					__func__);
+		ret = 1;
+	}
+	mutex_unlock(&tas5805m->lock);
+
+	return ret;
+}
+
+/* Base controls (always registered) */
+static const struct snd_kcontrol_new tas5805m_snd_controls_base[] = {
 	{
 		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
 		.name	= "Digital Volume",
@@ -731,16 +950,28 @@ static const struct snd_kcontrol_new tas5805m_snd_controls[] = {
 		.tlv.p	= tas5805m_again_tlv,
 	},
 
+	TAS5805M_ENUM("Equalizer", eq_mode_ctrl),
+};
+
+/* Mixer controls (conditionally registered based on device tree) */
+static const struct snd_kcontrol_new tas5805m_snd_controls_mixer[] = {
+	{
+		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name	= "Mixer Mode",
+		.access	= SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info	= tas5805m_mixer_mode_info,
+		.get	= tas5805m_mixer_mode_get,
+		.put	= tas5805m_mixer_mode_put,
+	},
+
 	TAS5805M_MIXER("Mixer L2L Gain", mixer_l2l),
 	TAS5805M_MIXER("Mixer R2L Gain", mixer_r2l),
 	TAS5805M_MIXER("Mixer L2R Gain", mixer_l2r),
 	TAS5805M_MIXER("Mixer R2R Gain", mixer_r2r),
+};
 
-	TAS5805M_ENUM("Modulation Scheme", modulation_mode_ctrl),
-	TAS5805M_ENUM("Switching Freq", switch_freq_ctrl),
-	TAS5805M_ENUM("Bridge Mode", bridge_mode_ctrl),
-	TAS5805M_ENUM("Equalizer", eq_mode_ctrl),
-
+/* EQ band controls (conditionally registered based on device tree) */
+static const struct snd_kcontrol_new tas5805m_snd_controls_eq_15band[] = {
 	TAS5805M_EQ_BAND("00020 Hz", 0),
 	TAS5805M_EQ_BAND("00032 Hz", 1),
 	TAS5805M_EQ_BAND("00050 Hz", 2),
@@ -756,6 +987,18 @@ static const struct snd_kcontrol_new tas5805m_snd_controls[] = {
 	TAS5805M_EQ_BAND("05000 Hz", 12),
 	TAS5805M_EQ_BAND("08000 Hz", 13),
 	TAS5805M_EQ_BAND("16000 Hz", 14),
+};
+
+/* Crossover controls (registered when EQ mode is crossover) */
+static const struct snd_kcontrol_new tas5805m_snd_controls_crossover[] = {
+	{
+		.iface	= SNDRV_CTL_ELEM_IFACE_MIXER,
+		.name	= "Crossover Frequency",
+		.access	= SNDRV_CTL_ELEM_ACCESS_READWRITE,
+		.info	= tas5805m_crossover_info,
+		.get	= tas5805m_crossover_get,
+		.put	= tas5805m_crossover_put,
+	},
 };
 
 static void send_cfg(struct regmap *rm,
@@ -777,8 +1020,7 @@ static int tas5805m_trigger(struct snd_pcm_substream *substream, int cmd,
 			    struct snd_soc_dai *dai)
 {
 	struct snd_soc_component *component = dai->component;
-	struct tas5805m_priv *tas5805m =
-		snd_soc_component_get_drvdata(component);
+	struct tas5805m_priv *priv;
 
 	dev_dbg(component->dev, "%s: cmd=%d\n", 
 		__func__, cmd);
@@ -787,8 +1029,23 @@ static int tas5805m_trigger(struct snd_pcm_substream *substream, int cmd,
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		dev_dbg(component->dev, "%s: clock start\n", __func__);
-		schedule_work(&tas5805m->work);
+		dev_dbg(component->dev, "%s: clock start - scheduling work for all devices\n", __func__);
+		
+		/* Signal all TAS5805M devices to start initialization.
+		 * This ensures both primary and secondary codecs get initialized
+		 * when playback starts, since TRIGGER events only reach primary.
+		 */
+		mutex_lock(&tas5805m_list_mutex);
+		list_for_each_entry(priv, &tas5805m_device_list, list) {
+			mutex_lock(&priv->lock);
+			if (!priv->is_powered && !work_pending(&priv->work)) {
+				dev_dbg(&priv->i2c->dev, "%s: scheduling work for device at 0x%02x\n",
+					__func__, priv->i2c->addr);
+				schedule_work(&priv->work);
+			}
+			mutex_unlock(&priv->lock);
+		}
+		mutex_unlock(&tas5805m_list_mutex);
 		break;
 
 	case SNDRV_PCM_TRIGGER_STOP:
@@ -825,18 +1082,33 @@ static void do_work(struct work_struct *work)
 		dev_dbg(&tas5805m->i2c->dev, "%s: sending preboot config\n", __func__);
 		send_cfg(rm, dsp_cfg_preboot, ARRAY_SIZE(dsp_cfg_preboot));
 		// Need to wait until clock is read by the DAC
-		usleep_range(5000, 15000);
+		usleep_range(5000, 10000);
 		if (tas5805m->dsp_cfg_len > 0)
 		{
 			send_cfg(rm, tas5805m->dsp_cfg_data, tas5805m->dsp_cfg_len);
 		}
+		
+		/* Apply bridge mode setting from device tree after DSP boot */
+		SET_BOOK_AND_PAGE(rm, TAS5805M_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_0);
+		unsigned int dctrl1_init = (tas5805m->modulation_mode & 0x3) |
+								  ((tas5805m->bridge_mode & 0x1) << 2) |
+								  ((tas5805m->switch_freq & 0x7) << 4);
+		regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_1, dctrl1_init);
+		dev_info(&tas5805m->i2c->dev, "%s: Device configuration: modulation=%u, bridge_mode=%u (%s), switch_freq=%u\n",
+				 __func__, tas5805m->modulation_mode, tas5805m->bridge_mode,
+				 tas5805m->bridge_mode ? "Bridge/PBTL" : "Normal/Stereo",
+				 tas5805m->switch_freq);
+		
 		tas5805m->dsp_initialized = true;
 	} else {
 		dev_dbg(&tas5805m->i2c->dev, "%s: DSP already initialized, skipping preboot config\n", __func__);
 	}
 
-	tas5805m->is_powered = true;
+	/* Apply current settings */
 	tas5805m_refresh(tas5805m);
+	
+	/* Mark as powered only after successful initialization and refresh */
+	tas5805m->is_powered = true;
 	mutex_unlock(&tas5805m->lock);
 }
 
@@ -850,6 +1122,11 @@ static int tas5805m_dac_event(struct snd_soc_dapm_widget *w,
 
 	dev_dbg(component->dev, "%s: event=0x%x\n", 
 		__func__, event);
+
+	if (event & SND_SOC_DAPM_POST_PMU) {
+		dev_dbg(component->dev, "%s: DSP power-up\n", __func__);
+		/* Initialization now triggered by TRIGGER_START event */
+	}
 
 	if (event & SND_SOC_DAPM_PRE_PMD) {
 		dev_dbg(component->dev, "%s: DSP shutdown\n", __func__);
@@ -870,25 +1147,16 @@ static int tas5805m_dac_event(struct snd_soc_dapm_widget *w,
 
 static const struct snd_soc_dapm_route tas5805m_audio_map[] = {
 	{ "DAC", NULL, "DAC IN" },
-	{ "OUT", NULL, "DAC" },
+	{ "OUTA", NULL, "DAC" },
+	{ "OUTB", NULL, "DAC" },
 };
 
 static const struct snd_soc_dapm_widget tas5805m_dapm_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("DAC IN", "Playback", 0, SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_DAC_E("DAC", NULL, SND_SOC_NOPM, 0, 0,
-		tas5805m_dac_event, SND_SOC_DAPM_PRE_PMD),
-	SND_SOC_DAPM_OUTPUT("OUT")
-};
-
-static const struct snd_soc_component_driver soc_codec_dev_tas5805m = {
-	.controls		= tas5805m_snd_controls,
-	.num_controls		= ARRAY_SIZE(tas5805m_snd_controls),
-	.dapm_widgets		= tas5805m_dapm_widgets,
-	.num_dapm_widgets	= ARRAY_SIZE(tas5805m_dapm_widgets),
-	.dapm_routes		= tas5805m_audio_map,
-	.num_dapm_routes	= ARRAY_SIZE(tas5805m_audio_map),
-	.use_pmdown_time	= 1,
-	.endianness		= 1,
+		tas5805m_dac_event, SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
+	SND_SOC_DAPM_OUTPUT("OUTA"),
+	SND_SOC_DAPM_OUTPUT("OUTB")
 };
 
 static int tas5805m_mute(struct snd_soc_dai *dai, int mute, int direction)
@@ -914,7 +1182,7 @@ static int tas5805m_mute(struct snd_soc_dai *dai, int mute, int direction)
 }
 
 static const struct snd_soc_dai_ops tas5805m_dai_ops = {
-	.trigger		= tas5805m_trigger,
+	.trigger		    = tas5805m_trigger,
 	.mute_stream		= tas5805m_mute,
 	.no_capture_mute	= 1,
 };
@@ -1044,17 +1312,141 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	 */
 	tas5805m->vol = TAS5805M_VOLUME_ZERO_DB;
 	tas5805m->gain = TAS5805M_AGAIN_MAX; /* 0dB analog gain */
-	tas5805m->mixer_l2l = TAS5805M_MIXER_MAX_DB; /* 0dB L2L mixer gain */
-	tas5805m->mixer_r2l = TAS5805M_MIXER_MIN_DB; /* Muted R2L mixer */
-	tas5805m->mixer_l2r = TAS5805M_MIXER_MIN_DB; /* Muted L2R mixer */
-	tas5805m->mixer_r2r = TAS5805M_MIXER_MAX_DB; /* 0dB R2R mixer gain */
 	/* Initialize all EQ bands to 0dB (flat response) */
 	for (int i = 0; i < TAS5805M_EQ_BANDS; i++)
 		tas5805m->eq_band[i] = 0;
-	tas5805m->modulation_mode = 0; /* BD mode */
-	tas5805m->switch_freq = 0; /* 768kHz */
-	tas5805m->bridge_mode = 0; /* Normal mode */
 	tas5805m->eq_mode = 0; /* EQ On */
+	tas5805m->crossover_freq = 0; /* OFF */
+
+	/* Read EQ mode type from device tree (default: off)
+	 * 0 = OFF - no EQ processing
+	 * 1 = 15-band - traditional 15-band parametric EQ
+	 * 2 = crossover - crossover filter mode
+	 */
+	tas5805m->eq_mode_type = TAS5805M_EQ_MODE_OFF;
+	if (!device_property_read_u32(dev, "ti,eq-mode", (u32 *)&tas5805m->eq_mode_type)) {
+		if (tas5805m->eq_mode_type > TAS5805M_EQ_MODE_HF_CROSSOVER) {
+			dev_warn(dev, "%s: Invalid EQ mode %u, using OFF\n", __func__, tas5805m->eq_mode_type);
+			tas5805m->eq_mode_type = TAS5805M_EQ_MODE_OFF;
+		}
+		switch (tas5805m->eq_mode_type) {
+		case TAS5805M_EQ_MODE_OFF:
+			dev_info(dev, "%s: EQ mode: OFF\n", __func__);
+			break;
+		case TAS5805M_EQ_MODE_15BAND:
+			dev_info(dev, "%s: EQ mode: 15-band parametric EQ\n", __func__);
+			break;
+		case TAS5805M_EQ_MODE_LF_CROSSOVER:
+			dev_info(dev, "%s: EQ mode: LF Crossover filter\n", __func__);
+			break;
+		case TAS5805M_EQ_MODE_HF_CROSSOVER:
+			dev_info(dev, "%s: EQ mode: HF Crossover filter\n", __func__);
+			break;
+		}
+	} else {
+		dev_dbg(dev, "%s: EQ mode: 15-band parametric EQ (default)\n", __func__);
+	}
+
+	/* Read modulation mode from device tree (default: Hybrid mode)
+	 * 0 = BD modulation
+	 * 1 = 1SPW modulation
+	 * 2 = Hybrid modulation (default)
+	 * This is not runtime configurable for stability
+	 */
+	tas5805m->modulation_mode = 2; /* Default to Hybrid mode */
+	if (!device_property_read_u32(dev, "ti,modulation-mode", &tas5805m->modulation_mode)) {
+		if (tas5805m->modulation_mode > 2) {
+			dev_warn(dev, "%s: Invalid modulation mode %u, using Hybrid\n", __func__, tas5805m->modulation_mode);
+			tas5805m->modulation_mode = 2;
+		}
+		dev_info(dev, "%s: Modulation mode: %s\n", __func__, modulation_mode_text[tas5805m->modulation_mode]);
+	} else {
+		dev_dbg(dev, "%s: Modulation mode: Hybrid (default)\n", __func__);
+	}
+
+	/* Read switching frequency from device tree (default: 768kHz)
+	 * 0 = 768kHz (default)
+	 * 1 = 384kHz
+	 * 2 = 480kHz
+	 * 3 = 576kHz
+	 * This is not runtime configurable for stability
+	 */
+	tas5805m->switch_freq = 0; /* Default to 768kHz */
+	if (!device_property_read_u32(dev, "ti,switching-freq", &tas5805m->switch_freq)) {
+		if (tas5805m->switch_freq > 3) {
+			dev_warn(dev, "%s: Invalid switching frequency %u, using 768kHz\n", __func__, tas5805m->switch_freq);
+			tas5805m->switch_freq = 0;
+		}
+		dev_info(dev, "%s: Switching frequency: %s\n", __func__, switch_freq_text[tas5805m->switch_freq]);
+	} else {
+		dev_dbg(dev, "%s: Switching frequency: 768K (default)\n", __func__);
+	}
+
+	/* Read mixer mode from device tree (optional)
+	 * If set, individual mixer sliders are hidden from ALSA
+	 * 0 = Stereo (default for primary DAC)
+	 * 1 = Mono (default for secondary DAC)
+	 * 2 = Left
+	 * 3 = Right
+	 */
+	if (!device_property_read_u32(dev, "ti,mixer-mode", &tas5805m->mixer_mode)) {
+		if (tas5805m->mixer_mode > 3) {
+			dev_warn(dev, "%s: Invalid mixer mode %u, using Stereo\n", __func__, tas5805m->mixer_mode);
+			tas5805m->mixer_mode = 0;
+		}
+		tas5805m->mixer_mode_from_dt = true;
+		
+		/* Apply the mixer mode values */
+		switch (tas5805m->mixer_mode) {
+		case 0: /* Stereo */
+			tas5805m->mixer_l2l = 0;
+			tas5805m->mixer_r2l = -110;
+			tas5805m->mixer_l2r = -110;
+			tas5805m->mixer_r2r = 0;
+			break;
+		case 1: /* Mono */
+			tas5805m->mixer_l2l = -6;
+			tas5805m->mixer_r2l = -6;
+			tas5805m->mixer_l2r = -6;
+			tas5805m->mixer_r2r = -6;
+			break;
+		case 2: /* Left */
+			tas5805m->mixer_l2l = 0;
+			tas5805m->mixer_r2l = -110;
+			tas5805m->mixer_l2r = 0;
+			tas5805m->mixer_r2r = -110;
+			break;
+		case 3: /* Right */
+			tas5805m->mixer_l2l = -110;
+			tas5805m->mixer_r2l = 0;
+			tas5805m->mixer_l2r = -110;
+			tas5805m->mixer_r2r = 0;
+			break;
+		}
+		dev_info(dev, "%s: Mixer mode: %s (from device tree)\n", __func__, mixer_mode_text[tas5805m->mixer_mode]);
+	} else {
+		/* Not set in device tree - use runtime defaults and expose controls */
+		tas5805m->mixer_mode = 0; /* Stereo by default */
+		tas5805m->mixer_mode_from_dt = false;
+		tas5805m->mixer_l2l = TAS5805M_MIXER_MAX_DB; /* 0dB L2L */
+		tas5805m->mixer_r2l = TAS5805M_MIXER_MIN_DB; /* Muted R2L */
+		tas5805m->mixer_l2r = TAS5805M_MIXER_MIN_DB; /* Muted L2R */
+		tas5805m->mixer_r2r = TAS5805M_MIXER_MAX_DB; /* 0dB R2R */
+		dev_dbg(dev, "%s: Mixer controls enabled (runtime configurable)\n", __func__);
+	}
+
+	/* Read bridge mode from device tree (default: normal mode)
+	 * 0 = Normal mode (PBTL disabled)
+	 * 1 = Bridge mode (PBTL enabled)
+	 * This is not runtime configurable to prevent speaker damage
+	 */
+	tas5805m->bridge_mode = 0; /* Default to normal mode */
+	if (device_property_read_bool(dev, "ti,bridge-mode")) {
+		tas5805m->bridge_mode = 1;
+		dev_info(dev, "%s: Bridge mode (PBTL) enabled via device tree\n", __func__);
+	} else {
+		dev_dbg(dev, "%s: Normal mode (stereo) enabled (default)\n", __func__);
+	}
 
 	ret = regulator_enable(tas5805m->pvdd);
 	if (ret < 0) {
@@ -1069,11 +1461,100 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 
 	INIT_WORK(&tas5805m->work, do_work);
 	mutex_init(&tas5805m->lock);
+	
+	/* Add to device list for trigger synchronization */
+	mutex_lock(&tas5805m_list_mutex);
+	list_add_tail(&tas5805m->list, &tas5805m_device_list);
+	mutex_unlock(&tas5805m_list_mutex);
+
+	/* Build component driver dynamically based on EQ mode */
+	struct snd_soc_component_driver *soc_codec_dev;
+	struct snd_kcontrol_new *controls;
+	int num_controls;
+	const struct snd_kcontrol_new *eq_controls = NULL;
+	size_t eq_controls_size = 0;
+
+	soc_codec_dev = devm_kzalloc(dev, sizeof(*soc_codec_dev), GFP_KERNEL);
+	if (!soc_codec_dev) {
+		gpiod_set_value(tas5805m->gpio_pdn_n, 0);
+		regulator_disable(tas5805m->pvdd);
+		return -ENOMEM;
+	}
+
+	/* Determine which EQ controls to add based on mode */
+	switch (tas5805m->eq_mode_type) {
+	case TAS5805M_EQ_MODE_15BAND:
+		eq_controls = tas5805m_snd_controls_eq_15band;
+		eq_controls_size = sizeof(tas5805m_snd_controls_eq_15band);
+		break;
+	case TAS5805M_EQ_MODE_LF_CROSSOVER:
+	case TAS5805M_EQ_MODE_HF_CROSSOVER:
+		eq_controls = tas5805m_snd_controls_crossover;
+		eq_controls_size = sizeof(tas5805m_snd_controls_crossover);
+		break;
+	case TAS5805M_EQ_MODE_OFF:
+	default:
+		eq_controls = NULL;
+		eq_controls_size = 0;
+		break;
+	}
+
+	/* Calculate total number of controls */
+	num_controls = ARRAY_SIZE(tas5805m_snd_controls_base);
+	if (!tas5805m->mixer_mode_from_dt)
+		num_controls += ARRAY_SIZE(tas5805m_snd_controls_mixer);
+	if (eq_controls)
+		num_controls += eq_controls_size / sizeof(struct snd_kcontrol_new);
+
+	/* Allocate and build control array */
+	controls = devm_kmalloc(dev, num_controls * sizeof(struct snd_kcontrol_new), GFP_KERNEL);
+	if (!controls) {
+		gpiod_set_value(tas5805m->gpio_pdn_n, 0);
+		regulator_disable(tas5805m->pvdd);
+		return -ENOMEM;
+	}
+
+	/* Copy base controls */
+	memcpy(controls, tas5805m_snd_controls_base, sizeof(tas5805m_snd_controls_base));
+	int offset = ARRAY_SIZE(tas5805m_snd_controls_base);
+
+	/* Add mixer controls if not controlled by device tree */
+	if (!tas5805m->mixer_mode_from_dt) {
+		memcpy(&controls[offset], tas5805m_snd_controls_mixer, sizeof(tas5805m_snd_controls_mixer));
+		offset += ARRAY_SIZE(tas5805m_snd_controls_mixer);
+	}
+
+	/* Add EQ or crossover controls if applicable */
+	if (eq_controls) {
+		memcpy(&controls[offset], eq_controls, eq_controls_size);
+	}
+
+	/* Log control registration */
+	if (tas5805m->mixer_mode_from_dt && eq_controls)
+		dev_dbg(dev, "%s: Registered %d controls (mixer from DT, with %s)\n", 
+			__func__, num_controls, tas5805m->eq_mode_type == TAS5805M_EQ_MODE_15BAND ? "15-band EQ" : "crossover");
+	else if (tas5805m->mixer_mode_from_dt)
+		dev_dbg(dev, "%s: Registered %d controls (mixer from DT)\n", __func__, num_controls);
+	else if (eq_controls)
+		dev_dbg(dev, "%s: Registered %d controls (with %s)\n", 
+			__func__, num_controls, tas5805m->eq_mode_type == TAS5805M_EQ_MODE_15BAND ? "15-band EQ" : "crossover");
+	else
+		dev_dbg(dev, "%s: Registered %d controls\n", __func__, num_controls);
+
+	/* Build component driver structure */
+	soc_codec_dev->controls = controls;
+	soc_codec_dev->num_controls = num_controls;
+	soc_codec_dev->dapm_widgets = tas5805m_dapm_widgets;
+	soc_codec_dev->num_dapm_widgets = ARRAY_SIZE(tas5805m_dapm_widgets);
+	soc_codec_dev->dapm_routes = tas5805m_audio_map;
+	soc_codec_dev->num_dapm_routes = ARRAY_SIZE(tas5805m_audio_map);
+	soc_codec_dev->use_pmdown_time = 1;
+	soc_codec_dev->endianness = 1;
 
 	/* Don't register through devm. We need to be able to unregister
 	 * the component prior to deasserting PDN#
 	 */
-	ret = snd_soc_register_component(dev, &soc_codec_dev_tas5805m,
+	ret = snd_soc_register_component(dev, soc_codec_dev,
 					 &tas5805m_dai, 1);
 	if (ret < 0) {
 		dev_err(dev, "%s: unable to register codec: %d\n", 
@@ -1093,6 +1574,11 @@ static void tas5805m_i2c_remove(struct i2c_client *i2c)
 
 	dev_dbg(dev, "%s on %s\n", 
 		__func__, dev_name(dev));
+
+	/* Remove from device list */
+	mutex_lock(&tas5805m_list_mutex);
+	list_del(&tas5805m->list);
+	mutex_unlock(&tas5805m_list_mutex);
 
 	cancel_work_sync(&tas5805m->work);
 	snd_soc_unregister_component(dev);

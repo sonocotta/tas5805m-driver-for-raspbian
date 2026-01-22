@@ -42,6 +42,11 @@
 #define TAS5805M_REG_UNDOCUMENTED_2  0x7e
 #define TAS5805M_REG_PAGE1_UNDOC_0   0x51
 
+/* SDOUT_SEL register values 
+*/
+#define TAS5805M_REG_SDOUT_SEL_POST_DSP 0x0
+#define TAS5805M_REG_SDOUT_SEL_PRE_DSP  0x1
+
 /* Volume control using hardware register TAS5805M_REG_VOL_CTRL (0x4c)
  * Register value to dB mapping:
  *   0x00 = +24.0 dB
@@ -103,6 +108,7 @@
 /* Mixer gain values */
 #define TAS5805M_MIXER_MIN_DB -110
 #define TAS5805M_MIXER_MAX_DB 0
+#define TAS5805M_MIXER_HALFMAX_DB -6
 #define TAS5805M_MIXER_VALUE_MUTE 0x00000000
 #define TAS5805M_MIXER_VALUE_0DB 0x00008000
 #define TAS5805M_MIXER_VALUE_MINUS6DB 0x00004000
