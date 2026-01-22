@@ -65,7 +65,8 @@ static const char * const switch_freq_text[] = {
 enum tas5805m_eq_mode_type {
 	TAS5805M_EQ_MODE_OFF = 0,
 	TAS5805M_EQ_MODE_15BAND = 1,
-	TAS5805M_EQ_MODE_CROSSOVER = 2,
+	TAS5805M_EQ_MODE_LF_CROSSOVER = 2,
+	TAS5805M_EQ_MODE_HF_CROSSOVER = 3,
 };
 
 static const char * const crossover_freq_text[] = {
@@ -145,7 +146,12 @@ struct tas5805m_priv {
 
 	struct work_struct		work;
 	struct mutex			lock;
+	struct list_head		list;  /* Linked list of all TAS5805M devices */
 };
+
+/* Global list of all TAS5805M devices and lock */
+static LIST_HEAD(tas5805m_device_list);
+static DEFINE_MUTEX(tas5805m_list_mutex);
 
 static void tas5805m_decode_faults(struct device *dev, unsigned int chan,
 				   unsigned int global1, unsigned int global2,
@@ -350,8 +356,8 @@ static void tas5805m_refresh(struct tas5805m_priv *tas5805m)
 				regmap_write(rm, reg_value->offset, reg_value->value);
 			}
 		}
-	} else if (tas5805m->eq_mode_type == TAS5805M_EQ_MODE_CROSSOVER) {
-		/* Apply crossover filter coefficients */
+	} else if (tas5805m->eq_mode_type == TAS5805M_EQ_MODE_LF_CROSSOVER) {
+		/* Apply LF crossover filter coefficients */
 		unsigned int freq_index = tas5805m->crossover_freq;
 		
 		if (freq_index >= ARRAY_SIZE(crossover_freq_text)) {
@@ -359,11 +365,38 @@ static void tas5805m_refresh(struct tas5805m_priv *tas5805m)
 			freq_index = 0;
 		}
 		
-		dev_dbg(&tas5805m->i2c->dev, "%s: applying crossover filter: frequency=%s\n", 
+		dev_dbg(&tas5805m->i2c->dev, "%s: applying LF crossover filter: frequency=%s\n", 
 				__func__, crossover_freq_text[freq_index]);
 		
-		/* Get the appropriate coefficient array (uses left channel for both channels in bridge mode) */
+		/* Get the appropriate coefficient array (low-pass filter) */
 		const reg_sequence_eq *coefficients = tas5805m_crossover_lf_registers[freq_index];
+		int current_page = -1;
+		
+		/* Apply all coefficient registers (3 bands * 5 coefficients * 4 registers = 60 registers) */
+		for (int i = 0; i < TAS5805M_EQ_PROFILE_REG_PER_STEP; i++) {
+			const reg_sequence_eq *reg_value = &coefficients[i];
+			
+			if (reg_value->page != current_page) {
+				current_page = reg_value->page;
+				SET_BOOK_AND_PAGE(rm, TAS5805M_REG_BOOK_EQ, reg_value->page);
+			}
+			
+			regmap_write(rm, reg_value->offset, reg_value->value);
+		}
+	} else if (tas5805m->eq_mode_type == TAS5805M_EQ_MODE_HF_CROSSOVER) {
+		/* Apply HF crossover filter coefficients */
+		unsigned int freq_index = tas5805m->crossover_freq;
+		
+		if (freq_index >= ARRAY_SIZE(crossover_freq_text)) {
+			dev_warn(&tas5805m->i2c->dev, "%s: Invalid crossover frequency index %u, using OFF\n", __func__, freq_index);
+			freq_index = 0;
+		}
+		
+		dev_dbg(&tas5805m->i2c->dev, "%s: applying HF crossover filter: frequency=%s\n", 
+				__func__, crossover_freq_text[freq_index]);
+		
+		/* Get the appropriate coefficient array (high-pass filter) */
+		const reg_sequence_eq *coefficients = tas5805m_crossover_hf_registers[freq_index];
 		int current_page = -1;
 		
 		/* Apply all coefficient registers (3 bands * 5 coefficients * 4 registers = 60 registers) */
@@ -987,8 +1020,7 @@ static int tas5805m_trigger(struct snd_pcm_substream *substream, int cmd,
 			    struct snd_soc_dai *dai)
 {
 	struct snd_soc_component *component = dai->component;
-	struct tas5805m_priv *tas5805m =
-		snd_soc_component_get_drvdata(component);
+	struct tas5805m_priv *priv;
 
 	dev_dbg(component->dev, "%s: cmd=%d\n", 
 		__func__, cmd);
@@ -997,8 +1029,23 @@ static int tas5805m_trigger(struct snd_pcm_substream *substream, int cmd,
 	case SNDRV_PCM_TRIGGER_START:
 	case SNDRV_PCM_TRIGGER_RESUME:
 	case SNDRV_PCM_TRIGGER_PAUSE_RELEASE:
-		dev_dbg(component->dev, "%s: clock start\n", __func__);
-		schedule_work(&tas5805m->work);
+		dev_dbg(component->dev, "%s: clock start - scheduling work for all devices\n", __func__);
+		
+		/* Signal all TAS5805M devices to start initialization.
+		 * This ensures both primary and secondary codecs get initialized
+		 * when playback starts, since TRIGGER events only reach primary.
+		 */
+		mutex_lock(&tas5805m_list_mutex);
+		list_for_each_entry(priv, &tas5805m_device_list, list) {
+			mutex_lock(&priv->lock);
+			if (!priv->is_powered && !work_pending(&priv->work)) {
+				dev_dbg(&priv->i2c->dev, "%s: scheduling work for device at 0x%02x\n",
+					__func__, priv->i2c->addr);
+				schedule_work(&priv->work);
+			}
+			mutex_unlock(&priv->lock);
+		}
+		mutex_unlock(&tas5805m_list_mutex);
 		break;
 
 	case SNDRV_PCM_TRIGGER_STOP:
@@ -1057,8 +1104,11 @@ static void do_work(struct work_struct *work)
 		dev_dbg(&tas5805m->i2c->dev, "%s: DSP already initialized, skipping preboot config\n", __func__);
 	}
 
-	tas5805m->is_powered = true;
+	/* Apply current settings */
 	tas5805m_refresh(tas5805m);
+	
+	/* Mark as powered only after successful initialization and refresh */
+	tas5805m->is_powered = true;
 	mutex_unlock(&tas5805m->lock);
 }
 
@@ -1074,45 +1124,8 @@ static int tas5805m_dac_event(struct snd_soc_dapm_widget *w,
 		__func__, event);
 
 	if (event & SND_SOC_DAPM_POST_PMU) {
-		dev_dbg(component->dev, "%s: DSP startup\n", __func__);
-		
-		mutex_lock(&tas5805m->lock);
-		if (!tas5805m->is_powered) {
-			tas5805m->is_powered = true;
-			
-			/* Wait for I2S clock to stabilize */
-			usleep_range(5000, 10000);
-			
-			/* Only send preboot config once per PDN cycle */
-			if (!tas5805m->dsp_initialized) {
-				dev_dbg(component->dev, "%s: sending preboot config\n", __func__);
-				send_cfg(rm, dsp_cfg_preboot, ARRAY_SIZE(dsp_cfg_preboot));
-				/* Wait for DSP to boot */
-				usleep_range(5000, 15000);
-				if (tas5805m->dsp_cfg_len > 0) {
-					send_cfg(rm, tas5805m->dsp_cfg_data, tas5805m->dsp_cfg_len);
-				}
-				
-				/* Apply bridge mode setting from device tree after DSP boot */
-				SET_BOOK_AND_PAGE(rm, TAS5805M_BOOK_CONTROL_PORT, TAS5805M_REG_PAGE_0);
-				unsigned int dctrl1_init = (tas5805m->modulation_mode & 0x3) |
-										  ((tas5805m->bridge_mode & 0x1) << 2) |
-										  ((tas5805m->switch_freq & 0x7) << 4);
-				regmap_write(rm, TAS5805M_REG_DEVICE_CTRL_1, dctrl1_init);
-				dev_info(component->dev, "%s: Device configuration: modulation=%u, bridge_mode=%u (%s), switch_freq=%u\n",
-						 __func__, tas5805m->modulation_mode, tas5805m->bridge_mode,
-						 tas5805m->bridge_mode ? "Bridge/PBTL" : "Normal/Stereo",
-						 tas5805m->switch_freq);
-				
-				tas5805m->dsp_initialized = true;
-			} else {
-				dev_dbg(component->dev, "%s: DSP already initialized, skipping preboot config\n", __func__);
-			}
-			
-			/* Power up and configure the device */
-			tas5805m_refresh(tas5805m);
-		}
-		mutex_unlock(&tas5805m->lock);
+		dev_dbg(component->dev, "%s: DSP power-up\n", __func__);
+		/* Initialization now triggered by TRIGGER_START event */
 	}
 
 	if (event & SND_SOC_DAPM_PRE_PMD) {
@@ -1312,7 +1325,7 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 	 */
 	tas5805m->eq_mode_type = TAS5805M_EQ_MODE_OFF;
 	if (!device_property_read_u32(dev, "ti,eq-mode", (u32 *)&tas5805m->eq_mode_type)) {
-		if (tas5805m->eq_mode_type > TAS5805M_EQ_MODE_CROSSOVER) {
+		if (tas5805m->eq_mode_type > TAS5805M_EQ_MODE_HF_CROSSOVER) {
 			dev_warn(dev, "%s: Invalid EQ mode %u, using OFF\n", __func__, tas5805m->eq_mode_type);
 			tas5805m->eq_mode_type = TAS5805M_EQ_MODE_OFF;
 		}
@@ -1323,8 +1336,11 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 		case TAS5805M_EQ_MODE_15BAND:
 			dev_info(dev, "%s: EQ mode: 15-band parametric EQ\n", __func__);
 			break;
-		case TAS5805M_EQ_MODE_CROSSOVER:
-			dev_info(dev, "%s: EQ mode: Crossover filter\n", __func__);
+		case TAS5805M_EQ_MODE_LF_CROSSOVER:
+			dev_info(dev, "%s: EQ mode: LF Crossover filter\n", __func__);
+			break;
+		case TAS5805M_EQ_MODE_HF_CROSSOVER:
+			dev_info(dev, "%s: EQ mode: HF Crossover filter\n", __func__);
 			break;
 		}
 	} else {
@@ -1445,6 +1461,11 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 
 	INIT_WORK(&tas5805m->work, do_work);
 	mutex_init(&tas5805m->lock);
+	
+	/* Add to device list for trigger synchronization */
+	mutex_lock(&tas5805m_list_mutex);
+	list_add_tail(&tas5805m->list, &tas5805m_device_list);
+	mutex_unlock(&tas5805m_list_mutex);
 
 	/* Build component driver dynamically based on EQ mode */
 	struct snd_soc_component_driver *soc_codec_dev;
@@ -1466,7 +1487,8 @@ static int tas5805m_i2c_probe(struct i2c_client *i2c)
 		eq_controls = tas5805m_snd_controls_eq_15band;
 		eq_controls_size = sizeof(tas5805m_snd_controls_eq_15band);
 		break;
-	case TAS5805M_EQ_MODE_CROSSOVER:
+	case TAS5805M_EQ_MODE_LF_CROSSOVER:
+	case TAS5805M_EQ_MODE_HF_CROSSOVER:
 		eq_controls = tas5805m_snd_controls_crossover;
 		eq_controls_size = sizeof(tas5805m_snd_controls_crossover);
 		break;
@@ -1552,6 +1574,11 @@ static void tas5805m_i2c_remove(struct i2c_client *i2c)
 
 	dev_dbg(dev, "%s on %s\n", 
 		__func__, dev_name(dev));
+
+	/* Remove from device list */
+	mutex_lock(&tas5805m_list_mutex);
+	list_del(&tas5805m->list);
+	mutex_unlock(&tas5805m_list_mutex);
 
 	cancel_work_sync(&tas5805m->work);
 	snd_soc_unregister_component(dev);
