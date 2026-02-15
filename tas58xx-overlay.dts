@@ -27,7 +27,7 @@
 
             codec: tas58xx@reg {
                 #sound-dai-cells = <0>;
-                compatible = "ti,tas5805m";
+                compatible = "ti,tas58xx";
                 reg = <0x2d>;
 //              pvdd-supply = <&audiopwr>;
                 pvdd-supply = <&vdd_3v3_reg>;

@@ -1,5 +1,5 @@
 // Definitions for Dual TAS5805M setup
-// dtc -I dts -O dtb -o /boot/overlays/tas58xx-dual.dtbo tas5805m-dual-overlay.dts
+// dtc -I dts -O dtb -o /boot/overlays/tas58xx-dual.dtbo tas58xx-dual-overlay.dts
 // bash: "sudo dtoverlay tas58xx-dual <i2creg_primary=...> <pdn_gpio_primary=...> <i2creg_secondary=...> <pdn_gpio_secondary=...>"
 // /boot/config.txt: "dtoverlay=tas58xx-dual<,i2creg_primary=...><,pdn_gpio_primary=...><,i2creg_secondary=...><,pdn_gpio_secondary=...>"
 // Primary DAC defaults: I2C=0x2d, GPIO=4
@@ -25,9 +25,9 @@
             #address-cells = <1>;
             #size-cells = <0>;
 
-            codec_primary: tas5805m@2d {
+            codec_primary: tas58xx@2d {
                 #sound-dai-cells = <0>;
-                compatible = "ti,tas5805m";
+                compatible = "ti,tas58xx";
                 reg = <0x2d>;
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 4 0>;
@@ -38,14 +38,14 @@
                 ti,switching-freq = <0>;
                 /* Normal stereo mode for left/right speakers */
                 /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=LF Crossover, 3=HF Crossover */
-                ti,eq-mode = <3>;
+                ti,eq-mode = <1>;
                 /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
                 ti,mixer-mode = <0>;
             };
 
-            codec_secondary: tas5805m@2e {
+            codec_secondary: tas58xx@2e {
                 #sound-dai-cells = <0>;
-                compatible = "ti,tas5805m";
+                compatible = "ti,tas58xx";
                 reg = <0x2e>;
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 5 0>;

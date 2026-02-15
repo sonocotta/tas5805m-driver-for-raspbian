@@ -1,7 +1,7 @@
-.tas5805m*
-tas5805m.ko
-tas5805m.o
-tas5805m.mod*
+.tas58xx*
+tas58xx.ko
+tas58xx.o
+tas58xx.mod*
 .Module.symvers.cmd
 .modules.order.cmd
 Module.symvers
