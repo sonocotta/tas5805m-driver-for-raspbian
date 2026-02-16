@@ -1,9 +1,9 @@
-// Definitions for Dual TAS5805M setup
+// Definitions for Dual TAS5805M/TAS5825M setup
 // dtc -I dts -O dtb -o /boot/overlays/tas58xx-dual.dtbo tas58xx-dual-overlay.dts
-// bash: "sudo dtoverlay tas58xx-dual <i2creg_primary=...> <pdn_gpio_primary=...> <i2creg_secondary=...> <pdn_gpio_secondary=...>"
-// /boot/config.txt: "dtoverlay=tas58xx-dual<,i2creg_primary=...><,pdn_gpio_primary=...><,i2creg_secondary=...><,pdn_gpio_secondary=...>"
-// Primary DAC defaults: I2C=0x2d, GPIO=4
-// Secondary DAC defaults: I2C=0x2e, GPIO=5
+// bash: "sudo dtoverlay tas58xx-dual <i2creg_primary=...> <pdn_gpio_primary=...> <i2creg_secondary=...> <pdn_gpio_secondary=...> <eq_mode_primary=...> <eq_mode_secondary=...> <mixer_mode_primary=...> <mixer_mode_secondary=...> <bridge_mode_primary=...> <bridge_mode_secondary=...>"
+// /boot/config.txt: "dtoverlay=tas58xx-dual<,i2creg_primary=...><,pdn_gpio_primary=...><,i2creg_secondary=...><,pdn_gpio_secondary=...><,eq_mode_primary=...><,eq_mode_secondary=...><,mixer_mode_primary=...><,mixer_mode_secondary=...><,bridge_mode_primary=...><,bridge_mode_secondary=...>"
+// Primary DAC defaults: I2C=0x2d, GPIO=4, EQ=15-band, Mixer=Stereo, Bridge=off
+// Secondary DAC defaults: I2C=0x2e, GPIO=5, EQ=LF Crossover, Mixer=Mono, Bridge=on
 /dts-v1/;
 /plugin/;
 
@@ -103,5 +103,11 @@
         i2creg_secondary = <&codec_secondary>,"reg:<>";
         pdn_gpio_primary = <&codec_primary>,"pdn-gpios:4";
         pdn_gpio_secondary = <&codec_secondary>,"pdn-gpios:5";
+        eq_mode_primary = <&codec_primary>,"ti,eq-mode:0";
+        eq_mode_secondary = <&codec_secondary>,"ti,eq-mode:0";
+        mixer_mode_primary = <&codec_primary>,"ti,mixer-mode:0";
+        mixer_mode_secondary = <&codec_secondary>,"ti,mixer-mode:0";
+        bridge_mode_primary = <&codec_primary>,"ti,bridge-mode?";
+        bridge_mode_secondary = <&codec_secondary>,"ti,bridge-mode?";
     };
 };

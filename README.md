@@ -1,20 +1,20 @@
-# TAS5805M DAC Linux kernel module 
+# TAS5805M/TAS5825M DAC Linux kernel module 
 
-This is a kernel module code to run a TAS5805M DAC on Raspberry Pi (Zero, Zero W, Zero 2W), Debian-based distributions (Raspbian, Volumio, DietPI, etc)
+This is a kernel module code to run TAS5805M and TAS5825M DACs on Raspberry Pi (Zero, Zero W, Zero 2W), Debian-based distributions (Raspbian, Volumio, DietPI, etc)
 
-The repository contains the device tree and source for the `tas5805m` kernel module. It also contains step-by-step instructions on how to use it.
+The repository contains the device tree and source for the `tas58xx` kernel module. It supports both TAS5805M and TAS5825M chips from the same family, with automatic detection based on I2C address. The module contains step-by-step instructions on how to use it.
 
 ## Introduction
 
-I've created a [set of development boards](https://github.com/sonocotta/raspberry-media-center/) using TAS5805M DAC, and I think this DAC is truly unique in terms of its features for the price. Not only does it provide pure audio with incredibly high efficiency, but being a digital DAC with an I2C control interface it allows an incredible level of control over the DAC functions. When I started to work on this DAC using the ESP32 platform, information available for it was scarce, except for the datasheet nothing could be found. You say what else would you need? It turns out the datasheet has no information about the DSP function of the device, which is 95% of its complexity (and coolness I might say). Then there was a journey of trial and error and eventual success on the ESP32 platform, with consecutive move to the Raspberry.
+I've created a [set of development boards](https://github.com/sonocotta/raspberry-media-center/) using TAS5805M and TAS5825M DACs, and I think these DACs are truly unique in terms of their features for the price. Not only does it provide pure audio with incredibly high efficiency, but being a digital DAC with an I2C control interface it allows an incredible level of control over the DAC functions. When I started to work on this DAC using the ESP32 platform, information available for it was scarce, except for the datasheet nothing could be found. You say what else would you need? It turns out the datasheet has no information about the DSP function of the device, which is 95% of its complexity (and coolness I might say). Then there was a journey of trial and error and eventual success on the ESP32 platform, with consecutive move to the Raspberry.
 
-Linux kernel has [tas5805m](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/tas5805m.c) module code already. The first issue with it, it is not included by default in any kernel, and although it is possible to rebuild and reinstall the kernel on the Raspberry, it is definitely not a trivial task to do. But the real issue is, that it is a very basic, if not minimal implementation with nothing but startup sequence and volume pot implementation. what do we miss out?
+Linux kernel has [tas5805m](https://github.com/torvalds/linux/blob/master/sound/soc/codecs/tas5805m.c) module code already. The first issue with it, it is not included by default in downstream kernels, and although it is possible to rebuild and reinstall the kernel on the Raspberry, it is definitely not a trivial task to do. But the real issue is, that it is a very basic, if not minimal implementation with nothing but startup sequence and volume pot implementation. what do we miss out?
 
 - Mixer controls - you have precise control over how left and right channel signals are routed into output drivers. Without it, you can't even get pure mono
 - Analog Gain - something you need to consider for lower distortions
 - Modulation scheme and switching frequency - very important to reach high efficiency for your power conditions
 - Bridge mode - if you aim to push out max power into a single speaker
-- 15-channel EQ controls (!!!) with precise transfer characteristics control
+- 15-channel EQ controls per channel (!!!) with precise transfer characteristics control
 - DRC/AGL for fine-tuning for specific enclosure/room compensation
 - FIR filter (no idea what it is for)
 - Soft-clipping - for lower distortions when you push it beyond reasonable.
@@ -52,25 +52,35 @@ Next, add to `/boot/config.txt`
 
 ```
 # Enable DAC
-dtoverlay=tas5805m,i2creg=0x2d
+dtoverlay=tas58xx,i2creg=0x2d
 ```
 
-`0x2d` is an I2C address of the device, it can be different on boards, but you should find in the documentation what it is exactly
+**I2C Address Ranges:**
+- **TAS5805M**: `0x2c` to `0x2f` (44-47 decimal)
+- **TAS5825M**: `0x4c` to `0x4f` (76-79 decimal)
+
+The driver automatically detects which chip variant is connected based on the I2C address. Check your board documentation for the specific I2C address. Common addresses are `0x2d` for TAS5805M and `0x4c` for TAS5825M.
 
 ### Dual DAC Configuration (2.1 Stereo + Subwoofer)
 
 For a 2.1 audio system with stereo speakers and a subwoofer, use the dual overlay:
 
 ```
-# Enable Dual DAC (2.1 audio)
-dtoverlay=tas5805m-dual
+# Enable Dual DAC (2.1 audio, TAS5805M Hat)
+dtoverlay=tas58xx-dual
+```
+
+```
+# Enable Dual DAC (2.1 audio, TAS5825M Hat)
+dtoverlay=tas58xx-dual,i2creg_primary=0x4c,i2creg_secondary=0x4d
 ```
 
 This configuration:
-- Primary DAC (0x2d, GPIO4): Stereo speakers in normal mode with HF crossover (high-pass filter)
-- Secondary DAC (0x2e, GPIO5): Subwoofer in bridge/PBTL mode with LF crossover (low-pass filter)
+- Primary DAC (0x2d/0x4c, GPIO4): Stereo speakers in normal mode with HF crossover (high-pass filter)
+- Secondary DAC (0x2e,0x4d, GPIO5): Subwoofer in bridge/PBTL mode with LF crossover (low-pass filter)
 - Both DACs: Hybrid modulation, 768kHz switching frequency
-- Mixer modes locked via device tree for safety
+
+**Note:** Both TAS5805M and TAS5825M can be used in dual DAC configurations. The driver automatically detects each chip based on its I2C address.
 
 ### Device Tree Properties
 
@@ -88,20 +98,78 @@ When `ti,mixer-mode` is set in the device tree, individual mixer sliders are hid
 
 Bridge mode is also set in the device tree and do not get changed on the fly. This prevents accidental changes that could damage speakers (especially important for bridge mode and subwoofers).
 
-Example custom configuration in device tree:
+### Device Tree Override Examples
 
-```dts
-tas5805m@2d {
-    compatible = "ti,tas5805m";
-    reg = <0x2d>;
-    pvdd-supply = <&vdd_3v3_reg>;
-    pdn-gpios = <&gpio 4 0>;
-    ti,modulation-mode = <2>;  /* Hybrid */
-    ti,switching-freq = <0>;   /* 768kHz */
-    ti,bridge-mode;            /* Enable PBTL mode */
-    ti,eq-mode = <0>;          /* EQ disabled */
-    ti,mixer-mode = <1>;       /* Mono mode */
-};
+Both device tree overlays support runtime parameter overrides via `/boot/config.txt`. This allows you to customize settings without editing the device tree source.
+
+#### Single DAC Override Examples
+
+**Basic configuration (use defaults):**
+```
+dtoverlay=tas58xx,i2creg=0x2d
+```
+
+**TAS5825M with custom I2C address:**
+```
+dtoverlay=tas58xx,i2creg=0x4c
+```
+
+**Mono subwoofer in bridge mode with LF crossover:**
+```
+dtoverlay=tas58xx,i2creg=0x2d,bridge_mode=1,eq_mode=2,mixer_mode=1
+```
+
+**Stereo speakers with HF crossover (for 2.1 setup):**
+```
+dtoverlay=tas58xx,i2creg=0x2d,eq_mode=3,mixer_mode=0
+```
+
+**EQ disabled:**
+```
+dtoverlay=tas58xx,i2creg=0x2d,eq_mode=0
+```
+
+**Left channel only (test setup):**
+```
+dtoverlay=tas58xx,i2creg=0x2d,mixer_mode=2
+```
+
+#### Dual DAC Override Examples
+
+**Basic 2.1 configuration (use defaults):**
+```
+dtoverlay=tas58xx-dual
+```
+
+**Custom I2C addresses for TAS5825M chips:**
+```
+dtoverlay=tas58xx-dual,i2creg_primary=0x4c,i2creg_secondary=0x4d
+```
+
+**Full-range stereo + full-range mono (no crossovers):**
+```
+dtoverlay=tas58xx-dual,eq_mode_primary=1,eq_mode_secondary=1,bridge_mode_secondary=0
+```
+
+#### Override Parameter Reference
+
+**Single DAC (tas58xx):**
+- `i2creg` - I2C address (default: 0x2d)
+- `pdn_gpio` - Power-down GPIO pin (default: 4)
+- `eq_mode` - EQ mode: 0=OFF, 1=15-band, 2=LF Crossover, 3=HF Crossover (default: 1)
+- `mixer_mode` - Mixer: 0=Stereo, 1=Mono, 2=Left, 3=Right (default: 0)
+- `bridge_mode` - Bridge/PBTL mode: 0=off, 1=on (default: 0)
+
+**Dual DAC (tas58xx-dual):**
+- `i2creg_primary` / `i2creg_secondary` - I2C addresses (defaults: 0x2d, 0x2e)
+- `pdn_gpio_primary` / `pdn_gpio_secondary` - Power-down GPIO pins (defaults: 4, 5)
+- `eq_mode_primary` / `eq_mode_secondary` - EQ modes (defaults: 1, 2)
+- `firmware_primary` / `firmware_secondary` - DSP config file names (optional)
+
+**Note:** After changing device tree parameters, you must recompile the overlay and reboot:
+```bash
+sudo ./compile-overlay.sh
+sudo reboot
 ```
 
 ### Optional Settings
@@ -141,6 +209,20 @@ $ lsmod | grep tas5805m
 tas5805m                6269  1
 regmap_i2c              5027  1 tas5805m
 snd_soc_core          240140  4 snd_soc_simple_card_utils,snd_soc_bcm2835_i2s,tas5805m,snd_soc_simple_card
+```
+
+You can also check the kernel log to see which chip was detected:
+
+```
+$ dmesg | grep -i tas58
+[    5.123456] tas5805m 1-002d: Detected TAS5805M at I2C address 0x2d
+```
+
+or
+
+```
+$ dmesg | grep -i tas58
+[    5.123456] tas5805m 1-004c: Detected TAS5825M at I2C address 0x4c
 ```
 
 Now quick test if the audio is functional
@@ -315,13 +397,19 @@ You can create a custom DSP config in the TI PurePath application and load it at
 Add the configuration name to your device tree overlay or `/boot/config.txt`:
 
 ```
-dtoverlay=tas5805m,i2creg=0x2d,dsp_config_name=<config_name>
+dtoverlay=tas58xx,i2creg=0x2d,firmware=<config_name>
 ```
 
 For example, if your file is `tas5805m_dsp_myconfig.bin`, use:
 
 ```
-dtoverlay=tas5805m,i2creg=0x2d,dsp_config_name=myconfig
+dtoverlay=tas58xx,i2creg=0x2d,firmware=myconfig
+```
+
+For dual DAC configurations:
+
+```
+dtoverlay=tas58xx-dual,firmware_primary=myconfig,firmware_secondary=subconfig
 ```
 
 Rebuild and reinstall the driver, then reboot:
@@ -353,27 +441,33 @@ The available ALSA controls depend on your device tree configuration:
 **Always Available:**
 - Digital Volume
 - Analog Gain
-- Equalizer (on/off toggle)
 
 **Conditionally Available:**
+- **Equalizer (on/off toggle)**: Only when `ti,eq-mode` is **NOT** `<0>` (OFF). This control enables/disables EQ processing.
 - **15-band EQ sliders**: Only when `ti,eq-mode=<1>` (15-band mode)
 - **Crossover Frequency**: Only when `ti,eq-mode=<2>` (LF Crossover) or `ti,eq-mode=<3>` (HF Crossover)
 - **Mixer Mode + Individual Sliders**: Only when `ti,mixer-mode` is **NOT** set in device tree
 
 **Example Configurations:**
 
-*Single DAC (default):*
+*Single DAC (default, 15-band EQ):*
 - Digital Volume, Analog Gain, Equalizer
 - 15 EQ band sliders (00020 Hz - 16000 Hz)
 - Mixer Mode control
 - 4 individual mixer sliders (L2L, R2L, L2R, R2R)
 
-*Dual DAC Primary (2.0 stereo):*
+*Single DAC (EQ disabled):*
+- Digital Volume, Analog Gain only
+- No Equalizer control
+- Mixer Mode control
+- 4 individual mixer sliders (L2L, R2L, L2R, R2R)
+
+*Dual DAC Primary (2.0 stereo with HF crossover):*
 - Digital Volume, Analog Gain, Equalizer
 - Crossover Frequency slider (OFF, 60-150Hz) for HF crossover
 - No mixer controls (locked to Stereo via device tree)
 
-*Dual DAC Secondary (0.1 subwoofer):*
+*Dual DAC Secondary (0.1 subwoofer with LF crossover):*
 - Digital Volume, Analog Gain, Equalizer
 - Crossover Frequency slider (OFF, 60-150Hz) for LF crossover
 - No mixer controls (locked to Mono via device tree)
@@ -422,10 +516,11 @@ The driver dynamically registers different ALSA controls based on the EQ mode co
 
 
 **EQ Disabled Mode** (`ti,eq-mode=<0>`):
-- Equalizer: On/Off toggle (no effect, EQ bypassed)
+- No Equalizer control (EQ completely bypassed at hardware level)
 - No frequency controls available
+- Only Digital Volume and Analog Gain controls are present
 
-All EQ modes include the "Equalizer" control which enables/disables the entire EQ processing. This allows runtime control even when using crossover filters.
+**Note:** EQ modes 1-3 include the "Equalizer" control which enables/disables the entire EQ processing at runtime. When `ti,eq-mode=<0>`, the EQ hardware is bypassed completely and the Equalizer control is not registered, saving system resources.
 
 #### 15-Band Parametric EQ
 
@@ -521,8 +616,30 @@ The `alsa-restore` service will then restore your settings on boot. Note that be
 - [x] Power consumption testing for different modulation schemes
 - [x] Detailed performance benchmarks for different configurations
 
+## Chip Variant Support
+
+The driver supports both TAS5805M and TAS5825M chips from the TI TAS58xx family:
+
+| Chip | I2C Address Range | Auto-Detection |
+|------|-------------------|----------------|
+| TAS5805M | 0x2c - 0x2f | Yes |
+| TAS5825M | 0x4c - 0x4f | Yes |
+
+The driver automatically detects which chip variant is connected based on the I2C address configured in the device tree. Both chips share the same register map and DSP architecture, making them fully compatible with this driver.
+
+**Key Features Shared by Both Chips:**
+- 15-band parametric equalizer with BQ coefficients
+- Crossover filter modes (LF/HF)
+- Bridge/PBTL mode for high-power mono output
+- Multiple modulation schemes (BD, 1SPW, Hybrid)
+- Adjustable switching frequency (384-768kHz)
+- Digital volume and analog gain control
+- Flexible mixer with channel routing
+- Dynamic range compression (DRC) and automatic gain leveling (AGL)
+
 ## References
 
-- [TAS5805M Datasheet](https://www.ti.com/lit/ds/symlink/tas5805m.pdf?ts=1711108445083) 
+- [TAS5805M Datasheet](https://www.ti.com/lit/ds/symlink/tas5805m.pdf)
+- [TAS5825M Datasheet](https://www.ti.com/lit/ds/symlink/tas5825m.pdf)
 - [TAS5805M: Linux driver for TAS58xx family](https://e2e.ti.com/support/audio-group/audio/f/audio-forum/1165952/tas5805m-linux-driver-for-tas58xx-family)
 - [Linux/TAS5825M: Linux drivers](https://e2e.ti.com/support/audio-group/audio/f/audio-forum/722027/linux-tas5825m-linux-drivers)

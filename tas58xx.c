@@ -1021,7 +1021,10 @@ static const struct snd_kcontrol_new tas58xx_snd_controls_base[] = {
 		.put	= tas58xx_again_put,
 		.tlv.p	= tas58xx_again_tlv,
 	},
+};
 
+/* Equalizer control (only when EQ mode is not OFF) */
+static const struct snd_kcontrol_new tas58xx_snd_controls_eq_toggle[] = {
 	TAS58XX_ENUM("Equalizer", eq_mode_ctrl),
 };
 
@@ -1586,6 +1589,8 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 
 	/* Calculate total number of controls */
 	num_controls = ARRAY_SIZE(tas58xx_snd_controls_base);
+	if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF)
+		num_controls += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
 	if (!tas58xx->mixer_mode_from_dt)
 		num_controls += ARRAY_SIZE(tas58xx_snd_controls_mixer);
 	if (eq_controls)
@@ -1602,6 +1607,12 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 	/* Copy base controls */
 	memcpy(controls, tas58xx_snd_controls_base, sizeof(tas58xx_snd_controls_base));
 	int offset = ARRAY_SIZE(tas58xx_snd_controls_base);
+
+	/* Add Equalizer toggle control if EQ mode is not OFF */
+	if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF) {
+		memcpy(&controls[offset], tas58xx_snd_controls_eq_toggle, sizeof(tas58xx_snd_controls_eq_toggle));
+		offset += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
+	}
 
 	/* Add mixer controls if not controlled by device tree */
 	if (!tas58xx->mixer_mode_from_dt) {
