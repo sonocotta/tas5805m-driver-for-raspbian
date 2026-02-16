@@ -37,7 +37,7 @@
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 4 0>;
                 /* ti,modulation-mode: 0=BD, 1=1SPW, 2=Hybrid (default) */
-                ti,modulation-mode = <2>;
+                ti,modulation-mode = <0>;
                 
                 /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
                 ti,switching-freq = <0>;

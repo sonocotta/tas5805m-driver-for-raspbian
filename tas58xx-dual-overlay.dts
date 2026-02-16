@@ -33,7 +33,7 @@
                 pdn-gpios = <&gpio 4 0>;
                 sound-name-prefix = "2.0";
                 /* ti,modulation-mode: 0=BD, 1=1SPW, 2=Hybrid (default) */
-                ti,modulation-mode = <2>;
+                ti,modulation-mode = <0>;
                 
                 /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
                 ti,switching-freq = <0>;
@@ -54,7 +54,7 @@
                 pdn-gpios = <&gpio 5 0>;
                 sound-name-prefix = "0.1";
                 /* ti,modulation-mode: 0=BD, 1=1SPW, 2=Hybrid (default) */
-                ti,modulation-mode = <2>;
+                ti,modulation-mode = <1>;
                 
                 /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
                 ti,switching-freq = <0>;
@@ -110,7 +110,5 @@
         i2creg_secondary = <&codec_secondary>,"reg:<>";
         pdn_gpio_primary = <&codec_primary>,"pdn-gpios:4";
         pdn_gpio_secondary = <&codec_secondary>,"pdn-gpios:5";
-        eq_mode_primary = <&codec_primary>,"ti,eq-mode:0";
-        eq_mode_secondary = <&codec_secondary>,"ti,eq-mode:0";
     };
 };
