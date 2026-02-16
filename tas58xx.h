@@ -42,7 +42,18 @@
 #define TAS58XX_REG_PAGE1_UNDOC_0   0x51
 
 /* TAS5805M specific register */
-#define TAS5805M_REG_DSP_MISC        0x66
+#define TAS5805M_REG_DSP_MISC       0x66
+
+/* GPIO config on TAS5825M */
+#define TAS5825M_REG_GPIO_CTL       0x60
+#define TAS5825M_REG_GPIO0          0x61
+#define TAS5825M_REG_GPIO1          0x62
+#define TAS5825M_REG_GPIO2          0x63
+#define TAS5825M_REG_GPIO_OFF       0x00
+#define TAS5825M_REG_GPIO_WARN      0b1000   
+#define TAS5825M_REG_GPIO_FAULT     0b1011
+#define TAS5825M_REG_GPIO_SDOUT     0b1001
+#define TAS5825M_REG_GPIO_CTL_OUT   0b0111
 
 /* SDOUT_SEL register values 
 */

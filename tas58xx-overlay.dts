@@ -42,7 +42,7 @@
                 /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
                 ti,switching-freq = <0>;
                 
-                /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=Crossover */
+                /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=LF Crossover (for subwoofer), 3=HF Crossover */
                 ti,eq-mode = <1>;
                 
                 /* ti,bridge-mode: enables PBTL/bridge mode (omit for normal stereo mode) */

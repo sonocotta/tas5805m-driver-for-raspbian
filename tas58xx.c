@@ -116,6 +116,14 @@ static const uint8_t dsp_cfg_preboot[] = {
 	TAS58XX_REG_SDOUT_SEL, TAS58XX_REG_SDOUT_SEL_PRE_DSP
 };
 
+/* GPIO config specific for TAS5825M */
+static const uint8_t dsp_cfg_preboot_gpio_config[] = {
+	TAS5825M_REG_GPIO0, TAS5825M_REG_GPIO_WARN,
+	TAS5825M_REG_GPIO1, TAS5825M_REG_GPIO_FAULT,
+	TAS5825M_REG_GPIO2, TAS5825M_REG_GPIO_SDOUT,
+	TAS5825M_REG_GPIO_CTL, TAS5825M_REG_GPIO_CTL_OUT
+};
+
 #define SET_BOOK_AND_PAGE(rm, book, page) \
     do { \
         regmap_write(rm, TAS58XX_REG_PAGE_SET, TAS58XX_REG_PAGE_0); \
@@ -1156,6 +1164,13 @@ static void do_work(struct work_struct *work)
 	if (!tas58xx->dsp_initialized) {
 		dev_dbg(&tas58xx->i2c->dev, "%s: sending preboot config\n", __func__);
 		send_cfg(rm, dsp_cfg_preboot, ARRAY_SIZE(dsp_cfg_preboot));
+		
+		if (tas58xx->variant == TAS5825M) {
+			/* Additional GPIO config for TAS5825M */
+			dev_dbg(&tas58xx->i2c->dev, "%s: sending GPIO config\n", __func__);
+			send_cfg(rm, dsp_cfg_preboot_gpio_config, ARRAY_SIZE(dsp_cfg_preboot_gpio_config));
+		}
+		
 		// Need to wait until clock is read by the DAC
 		usleep_range(5000, 10000);
 		if (tas58xx->dsp_cfg_len > 0)
