@@ -192,6 +192,12 @@ static void tas58xx_decode_faults(struct device *dev, unsigned int chan,
 		if (global1 & BIT(2))
 			dev_dbg(dev, "%s: Clock fault\n", __func__);
 
+		// Bits 3-4 are reserved
+
+		// Bit 5 applies only to tas5825m
+		if (global1 & BIT(5))
+			dev_warn(dev, "%s: EEPROM boot load error\n", __func__);
+
 		if (global1 & BIT(6))
 			dev_warn(dev, "%s: The recent BQ write failed\n", __func__);
 
@@ -202,11 +208,34 @@ static void tas58xx_decode_faults(struct device *dev, unsigned int chan,
 	if (global2) {
 		if (global2 & BIT(0))
 			dev_warn(dev, "%s: Over temperature shut down fault\n", __func__);
+
+		// Bits 1-2 only apply to tas5825m
+		if (global2 & BIT(1))
+			dev_warn(dev, "%s: Left channel cycle by cycle over current fault\n", __func__);
+
+		if (global2 & BIT(2))
+			dev_warn(dev, "%s: Right channel cycle by cycle over current fault\n", __func__);
 	}
 
 	if (ot_warning) {
+		if (ot_warning & BIT(0))
+			dev_warn(dev, "%s: Over temperature warning level 1, 112C\n", __func__);
+ 
+		if (ot_warning & BIT(1))
+			dev_warn(dev, "%s: Over temperature warning level 2, 122C\n", __func__);
+
 		if (ot_warning & BIT(2))
-			dev_warn(dev, "%s: Over temperature warning\n", __func__);
+			dev_warn(dev, "%s: Over temperature warning level 3, 134C\n", __func__);
+
+		if (ot_warning & BIT(3))
+			dev_warn(dev, "%s: Over temperature warning level 4, 146C\n", __func__);
+
+		// Bits 4-5 apply to tas5825m only
+		if (ot_warning & BIT(4))
+			dev_warn(dev, "%s: Right channel cycle by cycle over current warning\n", __func__);
+
+		if (ot_warning & BIT(5))
+			dev_warn(dev, "%s: Left channel cycle by cycle over current warning\n", __func__);
 	}
 }
 
@@ -320,7 +349,17 @@ static void tas58xx_refresh(struct tas58xx_priv *tas58xx)
 					__func__, tas58xx->eq_mode);
 		regmap_write(rm, TAS5805M_REG_DSP_MISC, tas58xx->eq_mode & 0x1);
 	} else if (tas58xx->variant == TAS5825M) {
-		// TODO: For TAS5825M, the EQ enable/disable is controlled by a bit in the DSP_MISC register, but the exact bit may differ. Adjust as needed based on the datasheet.
+		SET_BOOK_AND_PAGE(rm, TAS5825M_BOOK_5, TAS5825M_BOOK_5_EQ_PAGE);
+
+		dev_dbg(&tas58xx->i2c->dev, "%s: writing eq gang enable reg 0x%02x\n",
+					__func__, 0x1);
+		// regmap_write(rm, TAS5825M_REG_EQ_GANG_ENABLE, 0x01);
+		regmap_bulk_write(rm, TAS5825M_REG_EQ_GANG_ENABLE, (uint8_t[]){0x00, 0x00, 0x00, 0x01}, 4);
+
+		dev_dbg(&tas58xx->i2c->dev, "%s: writing eq bypass enable reg 0x%02x\n",
+					__func__, tas58xx->eq_mode);
+		//regmap_write(rm, TAS5825M_REG_EQ_BYPASS_ENABLE, tas58xx->eq_mode & 0x1);	
+		regmap_bulk_write(rm, TAS5825M_REG_EQ_BYPASS_ENABLE, (uint8_t[]){0x00, 0x00, 0x00, tas58xx->eq_mode & 0x1}, 4);
 	}
 
 	/* Write mixer gain registers
@@ -346,7 +385,23 @@ static void tas58xx_refresh(struct tas58xx_priv *tas58xx)
 		tas58xx_map_db_to_9_23(tas58xx->mixer_r2r, mixer_buf);
 		regmap_bulk_write(rm, TAS5805M_REG_RIGHT_TO_RIGHT_GAIN, mixer_buf, 4);
 	} else if (tas58xx->variant == TAS5825M) {
-		// TODO: For TAS5825M, the mixer gain registers may be different. Adjust register addresses and mapping as needed based on the datasheet.
+		SET_BOOK_AND_PAGE(rm, TAS5825M_BOOK_5, TAS5825M_BOOK_5_MIXER_PAGE);
+		
+		dev_dbg(&tas58xx->i2c->dev, "%s: mixer gains: L2L=%ddB, R2L=%ddB, L2R=%ddB, R2R=%ddB\n",
+					__func__, tas58xx->mixer_l2l, tas58xx->mixer_r2l,
+					tas58xx->mixer_l2r, tas58xx->mixer_r2r);
+
+		tas58xx_map_db_to_9_23(tas58xx->mixer_l2l, mixer_buf);
+		regmap_bulk_write(rm, TAS5825M_REG_LEFT_TO_LEFT_GAIN, mixer_buf, 4);
+		
+		tas58xx_map_db_to_9_23(tas58xx->mixer_r2l, mixer_buf);
+		regmap_bulk_write(rm, TAS5825M_REG_RIGHT_TO_LEFT_GAIN, mixer_buf, 4);
+		
+		tas58xx_map_db_to_9_23(tas58xx->mixer_l2r, mixer_buf);
+		regmap_bulk_write(rm, TAS5825M_REG_LEFT_TO_RIGHT_GAIN, mixer_buf, 4);
+		
+		tas58xx_map_db_to_9_23(tas58xx->mixer_r2r, mixer_buf);
+		regmap_bulk_write(rm, TAS5825M_REG_RIGHT_TO_RIGHT_GAIN, mixer_buf, 4);
 	}
 
 	/* Write EQ band registers or apply crossover
