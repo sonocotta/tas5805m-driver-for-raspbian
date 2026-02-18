@@ -159,12 +159,14 @@ dtoverlay=tas58xx-dual,eq_mode_primary=1,eq_mode_secondary=1,bridge_mode_seconda
 - `eq_mode` - EQ mode: 0=OFF, 1=15-band, 2=LF Crossover, 3=HF Crossover (default: 1)
 - `mixer_mode` - Mixer: 0=Stereo, 1=Mono, 2=Left, 3=Right (default: 0)
 - `bridge_mode` - Bridge/PBTL mode: 0=off, 1=on (default: 0)
+- `fault_monitor` - Fault monitoring ALSA controls: 0=off, 1=on (default: 1)
 
 **Dual DAC (tas58xx-dual):**
 - `i2creg_primary` / `i2creg_secondary` - I2C addresses (defaults: 0x2d, 0x2e)
 - `pdn_gpio_primary` / `pdn_gpio_secondary` - Power-down GPIO pins (defaults: 4, 5)
 - `eq_mode_primary` / `eq_mode_secondary` - EQ modes (defaults: 1, 2)
 - `firmware_primary` / `firmware_secondary` - DSP config file names (optional)
+- `fault_monitor_primary` / `fault_monitor_secondary` - Fault monitoring ALSA controls: 0=off, 1=on (default: 0 for both)
 
 **Note:** After changing device tree parameters, you must recompile the overlay and reboot:
 ```bash
@@ -441,34 +443,52 @@ The available ALSA controls depend on your device tree configuration:
 **Always Available:**
 - Digital Volume
 - Analog Gain
+- Channel Volume Control(s):
+  - **Normal/Stereo Mode**: Channel Left Gain + Channel Right Gain
+  - **Bridge Mode**: Mono Channel Gain (single control)
 
 **Conditionally Available:**
 - **Equalizer (on/off toggle)**: Only when `ti,eq-mode` is **NOT** `<0>` (OFF). This control enables/disables EQ processing.
 - **15-band EQ sliders**: Only when `ti,eq-mode=<1>` (15-band mode)
 - **Crossover Frequency**: Only when `ti,eq-mode=<2>` (LF Crossover) or `ti,eq-mode=<3>` (HF Crossover)
 - **Mixer Mode + Individual Sliders**: Only when `ti,mixer-mode` is **NOT** set in device tree
+- **Fault Monitoring Controls** (13 controls): Only when `ti,fault-monitor` is set/enabled in device tree (default: enabled for single DAC, disabled for dual DAC)
 
 **Example Configurations:**
 
 *Single DAC (default, 15-band EQ):*
-- Digital Volume, Analog Gain, Equalizer
+- Digital Volume, Analog Gain
+- Channel Left Gain, Channel Right Gain
+- Equalizer toggle
 - 15 EQ band sliders (00020 Hz - 16000 Hz)
 - Mixer Mode control
 - 4 individual mixer sliders (L2L, R2L, L2R, R2R)
 
 *Single DAC (EQ disabled):*
-- Digital Volume, Analog Gain only
+- Digital Volume, Analog Gain
+- Channel Left Gain, Channel Right Gain
 - No Equalizer control
 - Mixer Mode control
 - 4 individual mixer sliders (L2L, R2L, L2R, R2R)
 
+*Single DAC (Bridge mode, EQ enabled):*
+- Digital Volume, Analog Gain
+- Mono Channel Gain (single control)
+- Equalizer toggle
+- 15 EQ band sliders (00020 Hz - 16000 Hz)
+- No mixer controls (locked to Mono via device tree)
+
 *Dual DAC Primary (2.0 stereo with HF crossover):*
-- Digital Volume, Analog Gain, Equalizer
+- Digital Volume, Analog Gain
+- Channel Left Gain, Channel Right Gain
+- Equalizer toggle
 - Crossover Frequency slider (OFF, 60-150Hz) for HF crossover
 - No mixer controls (locked to Stereo via device tree)
 
 *Dual DAC Secondary (0.1 subwoofer with LF crossover):*
-- Digital Volume, Analog Gain, Equalizer
+- Digital Volume, Analog Gain
+- Mono Channel Gain (single control for bridge mode)
+- Equalizer toggle
 - Crossover Frequency slider (OFF, 60-150Hz) for LF crossover
 - No mixer controls (locked to Mono via device tree)
 
@@ -583,7 +603,78 @@ A common alternative is to combine both channels into true Mono (reduced to -6dB
 
 ![image](https://github.com/user-attachments/assets/390d1ecb-e3cd-4fff-8951-80fc318ec7d9)
 
+### Per-Channel Volume Controls
+
+The driver provides volume controls for channels through DSP-based gain adjustment. The controls displayed depend on the bridge mode configuration:
+
+**Normal/Stereo Mode** (`ti,bridge-mode` not set):
+- **Channel Left Gain**: Independent left channel gain (-110dB to 0dB)
+- **Channel Right Gain**: Independent right channel gain (-110dB to 0dB)
+- Default: 0dB (unity gain) for both channels
+- Useful for:
+  - Balancing speaker pairs with different sensitivities
+  - Compensating for room acoustics
+  - Fine-tuning crossover levels in 2.1 configurations
+
+**Bridge/PBTL Mode** (`ti,bridge-mode` set):
+- **Mono Channel Gain**: Single mono channel gain (-110dB to 0dB)
+- Default: 0dB (unity gain)
+- Controls the bridged mono output
+- Right channel control is hidden (not applicable in bridge mode)
+
+These controls use the same 9.23 fixed-point format as mixer controls and support deferred initialization (changes are applied when the DSP is ready).
+
+**Signal Flow:**
+```
+Normal Mode: Input → Mixer (L2L, R2L, L2R, R2R) → Channel Volume (Left/Right Gain) → Stereo Output
+Bridge Mode: Input → Mixer → Mono Channel Gain → Bridged Mono Output
+```
+
+**Note:** Unlike the hardware volume control (which affects both channels equally), these controls allow precise gain adjustment. In normal mode, independent per-channel adjustment is available; in bridge mode, only the mono output is controlled. Changes take effect immediately and persist across power cycles when ALSA state is saved.
+
 **Warning:** When manually adjusting mixer sliders, keep in mind that the sum of signals may cause clipping if not compensated properly. For production systems, use device tree configuration to prevent accidents.
+
+### Fault Monitoring
+
+The driver provides optional read-only ALSA controls for hardware fault monitoring. These controls allow applications and scripts to monitor the DAC's health status in real-time.
+
+**Availability:** Fault monitoring controls are controlled by the `ti,fault-monitor` device tree property:
+- Single DAC (`tas58xx`): **Enabled by default** (`fault_monitor=1`)
+- Dual DAC (`tas58xx-dual`): **Disabled by default** (`fault_monitor_primary=0`, `fault_monitor_secondary=0`) to reduce control clutter
+
+**Available Fault Controls:**
+
+| Control Name | Description | Values |
+|--------------|-------------|--------|
+| Right Channel Overcurrent | Right channel overcurrent fault | Off (no fault), On (fault detected) |
+| Left Channel Overcurrent | Left channel overcurrent fault | Off (no fault), On (fault detected) |
+| Right Channel DC Fault | Right channel DC fault | Off (no fault), On (fault detected) |
+| Left Channel DC Fault | Left channel DC fault | Off (no fault), On (fault detected) |
+| PVDD Undervoltage | Power supply undervoltage fault | Off (no fault), On (fault detected) |
+| PVDD Overvoltage | Power supply overvoltage fault | Off (no fault), On (fault detected) |
+| Thermal Warning 85C | Die temperature ≥85°C | Off (normal), On (warning) |
+| Thermal Warning 105C | Die temperature ≥105°C | Off (normal), On (warning) |
+| Thermal Warning 125C | Die temperature ≥125°C | Off (normal), On (warning) |
+| Thermal Warning 145C | Die temperature ≥145°C (critical) | Off (normal), On (warning) |
+| Clock Error | Clock error or clock halt | Off (no fault), On (fault detected) |
+| DSP/Memory Error | DSP or memory CRC error | Off (no fault), On (fault detected) |
+| Channel Overcurrent Warning | Soft overcurrent warning | Off (normal), On (warning) |
+
+**Usage Example:**
+```bash
+# Check all fault status
+amixer -c LouderRaspberry | grep -E "(Channel|PVDD|Thermal|Clock|DSP|Overcurrent)"
+
+# Monitor specific fault in a script
+if amixer -c LouderRaspberry cget name='Thermal Warning 105C' | grep -q "values=on"; then
+  echo "WARNING: DAC temperature exceeded 105°C!"
+fi
+```
+
+**Note:** In dual-DAC configurations, fault monitoring is disabled by default since each DAC would expose 13 additional controls (26 total), which can clutter the ALSA control interface. Enable it per-DAC if needed:
+```bash
+dtoverlay=tas58xx-dual,fault_monitor_primary=1  # Enable for primary DAC only
+```
 
 ## Known issues
 
@@ -605,6 +696,7 @@ The `alsa-restore` service will then restore your settings on boot. Note that be
 
 - [x] Dynamic EQ controls (15-band parametric EQ)
 - [x] Mixer controls (L2L, R2L, L2R, R2R)
+- [x] Per-channel volume controls (Left/Right independent gain)
 - [x] Modulation scheme control (BD, 1SPW, Hybrid)
 - [x] Switching frequency control
 - [x] Bridge mode support

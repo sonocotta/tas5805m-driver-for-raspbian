@@ -1,9 +1,9 @@
 // Definitions for Dual TAS5805M/TAS5825M setup
 // dtc -I dts -O dtb -o /boot/overlays/tas58xx-dual.dtbo tas58xx-dual-overlay.dts
-// bash: "sudo dtoverlay tas58xx-dual <i2creg_primary=...> <pdn_gpio_primary=...> <i2creg_secondary=...> <pdn_gpio_secondary=...> <eq_mode_primary=...> <eq_mode_secondary=...> <mixer_mode_primary=...> <mixer_mode_secondary=...> <bridge_mode_primary=...> <bridge_mode_secondary=...>"
-// /boot/config.txt: "dtoverlay=tas58xx-dual<,i2creg_primary=...><,pdn_gpio_primary=...><,i2creg_secondary=...><,pdn_gpio_secondary=...><,eq_mode_primary=...><,eq_mode_secondary=...><,mixer_mode_primary=...><,mixer_mode_secondary=...><,bridge_mode_primary=...><,bridge_mode_secondary=...>"
-// Primary DAC defaults: I2C=0x2d, GPIO=4, EQ=15-band, Mixer=Stereo, Bridge=off
-// Secondary DAC defaults: I2C=0x2e, GPIO=5, EQ=LF Crossover, Mixer=Mono, Bridge=on
+// bash: "sudo dtoverlay tas58xx-dual <i2creg_primary=...> <pdn_gpio_primary=...> <i2creg_secondary=...> <pdn_gpio_secondary=...> <eq_mode_primary=...> <eq_mode_secondary=...> <mixer_mode_primary=...> <mixer_mode_secondary=...> <bridge_mode_primary=...> <bridge_mode_secondary=...> <fault_monitor_primary=...> <fault_monitor_secondary=...>"
+// /boot/config.txt: "dtoverlay=tas58xx-dual<,i2creg_primary=...><,pdn_gpio_primary=...><,i2creg_secondary=...><,pdn_gpio_secondary=...><,eq_mode_primary=...><,eq_mode_secondary=...><,mixer_mode_primary=...><,mixer_mode_secondary=...><,bridge_mode_primary=...><,bridge_mode_secondary=...><,fault_monitor_primary=...><,fault_monitor_secondary=...>"
+// Primary DAC defaults: I2C=0x2d, GPIO=4, EQ=15-band, Mixer=Stereo, Bridge=off, FaultMonitor=off
+// Secondary DAC defaults: I2C=0x2e, GPIO=5, EQ=LF Crossover, Mixer=Mono, Bridge=on, FaultMonitor=off
 /dts-v1/;
 /plugin/;
 
@@ -44,6 +44,8 @@
                 
                 /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
                 ti,mixer-mode = <0>;
+                
+                /* ti,fault-monitor: disabled by default in dual DAC configs to reduce control clutter */
             };
 
             codec_secondary: tas58xx@2e {
@@ -67,6 +69,8 @@
                 
                 /* ti,mixer-mode: 1=Mono for subwoofer (mix L+R) */
                 ti,mixer-mode = <1>;
+                
+                /* ti,fault-monitor: disabled by default in dual DAC configs to reduce control clutter */
             };
         };
     };
@@ -110,5 +114,7 @@
         i2creg_secondary = <&codec_secondary>,"reg:<>";
         pdn_gpio_primary = <&codec_primary>,"pdn-gpios:4";
         pdn_gpio_secondary = <&codec_secondary>,"pdn-gpios:5";
+        fault_monitor_primary = <&codec_primary>,"ti,fault-monitor?";
+        fault_monitor_secondary = <&codec_secondary>,"ti,fault-monitor?";
     };
 };

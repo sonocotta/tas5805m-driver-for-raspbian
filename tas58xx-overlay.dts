@@ -1,13 +1,14 @@
 // Definitions for Louder Raspberry
 // dtc -I dts -O dtb -o /boot/overlays/tas58xx.dtbo tas58xx-overlay.dts
-// bash: "sudo dtoverlay tas58xx <i2creg=...> <pdn_gpio=...> <firmware=...> <eq_mode=...> <mixer_mode=...> <bridge_mode=...>"
-// /boot/config.txt: "dtoverlay=tas58xx<,i2creg=...><,pdn_gpio=...><,firmware=...><,eq_mode=...><,mixer_mode=...><,bridge_mode=...>"
+// bash: "sudo dtoverlay tas58xx <i2creg=...> <pdn_gpio=...> <firmware=...> <eq_mode=...> <mixer_mode=...> <bridge_mode=...> <fault_monitor=...>"
+// /boot/config.txt: "dtoverlay=tas58xx<,i2creg=...><,pdn_gpio=...><,firmware=...><,eq_mode=...><,mixer_mode=...><,bridge_mode=...><,fault_monitor=...>"
 // i2creg: TAS5805M@0x2c-0x2f (default 0x2d), TAS5825M@0x4c-0x4f
 // pdn_gpio: GPIO pin number for power down control (default: 4)
 // firmware: DSP config file name (optional)
 // eq_mode: 0=OFF, 1=15-band (default), 2=LF Crossover, 3=HF Crossover
 // mixer_mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right
 // bridge_mode: 0=off (default), 1=on
+// fault_monitor: 0=off, 1=on (default)
 /dts-v1/;
 /plugin/;
 
@@ -50,6 +51,9 @@
                 
                 /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
                 ti,mixer-mode = <0>;
+                
+                /* ti,fault-monitor: enables fault monitoring ALSA controls (enabled by default for single DAC) */
+                ti,fault-monitor;
             };
         };
     };
@@ -84,5 +88,6 @@
             eq_mode = <&codec>,"ti,eq-mode:0";
             mixer_mode = <&codec>,"ti,mixer-mode:0";
             bridge_mode = <&codec>,"ti,bridge-mode?";
+            fault_monitor = <&codec>,"ti,fault-monitor?";
     };
 };
