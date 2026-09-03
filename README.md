@@ -26,7 +26,7 @@ Nuff said, it is a great device and deserves community attention and adoption.
 We're about to build kernel modules, so we need to install a few dependencies first (all commands going forward are running on the target host, ie Raspberry Pi) 
 
 ```
-$ sudo apt update && sudo apt install git raspberrypi-kernel-headers build-essential -y
+$ sudo apt update && sudo apt install git linux-headers-rpi-v8 build-essential -y
 ```
 
 Let's get code from GitHub 
