@@ -391,15 +391,18 @@ This driver provides:
 
 ## Kernel module - loading custom DSP configuration
 
-You can create a custom DSP config in the TI PurePath application and load it at boot time. The driver supports loading DSP configuration from firmware files.
+You can create a custom DSP config in the TI PurePath Console (PPC3) application and load it at boot time. The driver supports loading DSP configuration from a PPC3 text register-dump export.
 
-### Creating a DSP configuration binary
+### Creating a DSP configuration file
 
 1. Use TI PurePath Console software to create your desired configuration
-2. Export the configuration as a register dump (sequence of register address/value pairs)
-3. Create a binary file with the register sequence (omit the pre-boot initialization sequence that occurs before the 5ms delay)
-4. Name the file `tas5805m_dsp_<config_name>.bin`
-5. Place the file in `/lib/firmware/`
+2. Export the configuration as a text register dump. Each line is either a register write (`w <i2c_addr> <reg> <val>`, all in hex) or a delay (`d <delay_ms>`); `#` starts a comment that runs to the end of the line
+3. Comment out (or delete) the reset sequence at the top of the export that runs before the 5ms boot delay, since it duplicates what the driver already sends during power-up
+4. If the export covers multiple DACs sharing different I2C addresses, all their `w` lines can be left in the same file — the driver only applies the writes whose address matches the device it's configuring
+5. Name the file `tas58xx_dsp_<config_name>.cfg`
+6. Place the file in `/lib/firmware/`
+
+When a DSP config is successfully loaded for a device, that device's Equalizer, Crossover, Mixer and per-channel volume ALSA controls are no longer registered, since the loaded configuration already sets those DSP registers directly and the controls would otherwise be misleading.
 
 ### Enabling the configuration
 
@@ -409,7 +412,7 @@ Add the configuration name to your device tree overlay or `/boot/config.txt`:
 dtoverlay=tas58xx,i2creg=0x2d,firmware=<config_name>
 ```
 
-For example, if your file is `tas5805m_dsp_myconfig.bin`, use:
+For example, if your file is `tas58xx_dsp_myconfig.cfg`, use:
 
 ```
 dtoverlay=tas58xx,i2creg=0x2d,firmware=myconfig
