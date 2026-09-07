@@ -1,0 +1,62 @@
+name: Build kernel module
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build against ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # GitHub-hosted runners boot a cloud-tuned "azure" kernel that is
+        # built without CONFIG_SND_SOC (no audio hardware in a cloud VM),
+        # so snd_soc_register_component/snd_soc_unregister_component don't
+        # exist in it at all and modpost fails no matter what headers
+        # package is installed for that exact running kernel.
+        #
+        # We never insmod the module in CI, so the running kernel doesn't
+        # matter - only its headers/Module.symvers do. Installing the
+        # "generic" desktop/server flavor's headers instead gives us a
+        # real 6.x kernel build tree with full ALSA SoC support, without
+        # needing to actually boot it.
+        include:
+          - os: ubuntu-22.04
+            name: Ubuntu 22.04 generic HWE kernel
+            header_pkg: linux-headers-generic-hwe-22.04
+          - os: ubuntu-24.04
+            name: Ubuntu 24.04 generic kernel
+            header_pkg: linux-headers-generic
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install generic kernel headers (with full ALSA SoC support)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential ${{ matrix.header_pkg }}
+
+      - name: Locate installed generic kernel headers
+        id: kernel
+        run: |
+          KDIR="$(ls -d /lib/modules/*-generic/build | sort -V | tail -n1)"
+          KVER="$(basename "$(dirname "$KDIR")")"
+          echo "Building against kernel $KVER at $KDIR"
+          case "$KVER" in
+            6.*) ;;
+            *) echo "::error::Installed generic kernel headers are for $KVER, not a 6.x kernel"; exit 1 ;;
+          esac
+          echo "kdir=$KDIR" >> "$GITHUB_OUTPUT"
+
+      - name: Build tas58xx.ko
+        run: make KDIR="${{ steps.kernel.outputs.kdir }}"
+
+      - name: Verify module was produced
+        run: test -f tas58xx.ko
+
+      - name: make clean
+        run: make KDIR="${{ steps.kernel.outputs.kdir }}" clean

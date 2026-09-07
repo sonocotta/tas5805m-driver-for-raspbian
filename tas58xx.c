@@ -20,6 +20,7 @@
 #include <linux/kernel.h>
 #include <linux/firmware.h>
 #include <linux/slab.h>
+#include <linux/string.h>
 #include <linux/of.h>
 #include <linux/init.h>
 #include <linux/i2c.h>
@@ -131,13 +132,30 @@ static const uint8_t dsp_cfg_preboot_gpio_config[] = {
         regmap_write(rm, TAS58XX_REG_PAGE_SET, page);                   \
     } while (0)
 
+/* A parsed entry from a PPC3 text export ("w <addr> <reg> <val>" or
+ * "d <delay_ms>" lines). Register writes for I2C addresses other than
+ * the device's own are dropped at parse time.
+ */
+enum tas58xx_cfg_op_type {
+	TAS58XX_CFG_OP_WRITE = 0,
+	TAS58XX_CFG_OP_DELAY = 1,
+};
+
+struct tas58xx_cfg_op {
+	u8	type;
+	u8	reg;
+	u8	val;
+	u16	delay_ms;
+};
+
 struct tas58xx_priv {
 	struct i2c_client		*i2c;
 	struct regulator		*pvdd;
 	struct gpio_desc		*gpio_pdn_n;
 
-	uint8_t					*dsp_cfg_data;
-	int						dsp_cfg_len;
+	struct tas58xx_cfg_op	*dsp_cfg_ops;
+	int						dsp_cfg_num_ops;
+	bool					dsp_cfg_loaded;  /* True once a non-empty text DSP config was applied */
 
 	struct regmap			*regmap;
 	enum tas58xx_variant	variant;
@@ -352,6 +370,18 @@ static void tas58xx_refresh(struct tas58xx_priv *tas58xx)
 				__func__, dctrl1_value);
 	regmap_write(rm, TAS58XX_REG_DEVICE_CTRL_1, dctrl1_value);
 
+	/* A loaded DSP config already programmed EQ enable/bypass, mixer
+	 * routing, channel volume and biquad coefficients directly; the
+	 * driver's own defaults for those registers are stale and must
+	 * not be replayed over them on every refresh (mute toggle,
+	 * power-up, control change, etc).
+	 */
+	if (tas58xx->dsp_cfg_loaded) {
+		dev_dbg(&tas58xx->i2c->dev, "%s: DSP config loaded, skipping built-in EQ/mixer/channel volume registers\n",
+			__func__);
+		goto refresh_device_state;
+	}
+
 	/* Write DSP misc register (EQ enable/disable)
 	 * bit 0 controls EQ
 	 */
@@ -524,7 +554,8 @@ static void tas58xx_refresh(struct tas58xx_priv *tas58xx)
 		dev_dbg(&tas58xx->i2c->dev, "%s: EQ mode is OFF\n", __func__);
 	}
 
-	/* Return to control port page 0 */	
+refresh_device_state:
+	/* Return to control port page 0 */
 	SET_BOOK_AND_PAGE(rm, TAS58XX_BOOK_CONTROL_PORT, TAS58XX_REG_PAGE_0);
 	
 	/* Set/clear digital soft-mute */
@@ -1234,10 +1265,112 @@ static void send_cfg(struct regmap *rm,
 {
 	unsigned int i;
 
-	pr_debug("%s: len=%u\n", 
+	pr_debug("%s: len=%u\n",
 		__func__, len);
 	for (i = 0; i + 1 < len; i += 2)
 		regmap_write(rm, s[i], s[i + 1]);
+}
+
+/* Send a parsed text DSP config: register writes and any delays the
+ * config file requested between them.
+ */
+static void send_cfg_ops(struct regmap *rm,
+			  const struct tas58xx_cfg_op *ops, int num_ops)
+{
+	int i;
+
+	pr_debug("%s: num_ops=%d\n", __func__, num_ops);
+	for (i = 0; i < num_ops; i++) {
+		if (ops[i].type == TAS58XX_CFG_OP_DELAY)
+			usleep_range(ops[i].delay_ms * 1000,
+				     ops[i].delay_ms * 1000 + 1000);
+		else
+			regmap_write(rm, ops[i].reg, ops[i].val);
+	}
+}
+
+/* Parse a PPC3 text register-dump export into a sequence of write/delay
+ * operations. Each line is either:
+ *   w <i2c_addr_hex> <reg_hex> <val_hex>  - a register write
+ *   d <delay_ms>                          - a delay
+ * with optional trailing "# comment" text and blank/comment-only lines
+ * ignored. Since a single export may contain configuration for several
+ * DACs sharing the file but sitting at different I2C addresses, write
+ * lines whose address does not match `i2c_addr` are silently dropped.
+ *
+ * On success, *out_ops is allocated with devm_kzalloc() against `dev`
+ * and *out_num_ops holds the number of matching operations (which may
+ * be zero if the file contains nothing for this device's address).
+ */
+static int tas58xx_parse_text_config(struct device *dev, u8 i2c_addr,
+				      const char *text, size_t text_len,
+				      struct tas58xx_cfg_op **out_ops,
+				      int *out_num_ops)
+{
+	struct tas58xx_cfg_op *ops;
+	char *buf, *p, *line;
+	size_t i, capacity = 1;
+	int count = 0;
+
+	for (i = 0; i < text_len; i++)
+		if (text[i] == '\n')
+			capacity++;
+
+	buf = kmemdup_nul(text, text_len, GFP_KERNEL);
+	if (!buf)
+		return -ENOMEM;
+
+	ops = devm_kzalloc(dev, capacity * sizeof(*ops), GFP_KERNEL);
+	if (!ops) {
+		kfree(buf);
+		return -ENOMEM;
+	}
+
+	p = buf;
+	while ((line = strsep(&p, "\r\n")) != NULL) {
+		char *comment = strchr(line, '#');
+		unsigned int addr, reg, val, delay_ms;
+
+		if (comment)
+			*comment = '\0';
+		line = strim(line);
+		if (!*line)
+			continue;
+
+		if (line[0] == 'w' || line[0] == 'W') {
+			if (sscanf(line, "%*c %x %x %x", &addr, &reg, &val) != 3) {
+				dev_warn(dev, "%s: malformed write line, skipping: %s\n",
+					 __func__, line);
+				continue;
+			}
+			if (addr != i2c_addr)
+				continue;
+
+			ops[count].type = TAS58XX_CFG_OP_WRITE;
+			ops[count].reg = reg;
+			ops[count].val = val;
+			count++;
+		} else if (line[0] == 'd' || line[0] == 'D') {
+			if (sscanf(line, "%*c %u", &delay_ms) != 1) {
+				dev_warn(dev, "%s: malformed delay line, skipping: %s\n",
+					 __func__, line);
+				continue;
+			}
+
+			ops[count].type = TAS58XX_CFG_OP_DELAY;
+			ops[count].delay_ms = delay_ms;
+			count++;
+		} else {
+			dev_warn(dev, "%s: unrecognized line, skipping: %s\n",
+				 __func__, line);
+		}
+	}
+
+	kfree(buf);
+
+	*out_ops = ops;
+	*out_num_ops = count;
+	return 0;
 }
 
 /* The TAS58XX DSP can't be configured until the I2S clock has been
@@ -1318,9 +1451,9 @@ static void do_work(struct work_struct *work)
 		
 		// Need to wait until clock is read by the DAC
 		usleep_range(5000, 10000);
-		if (tas58xx->dsp_cfg_len > 0)
+		if (tas58xx->dsp_cfg_num_ops > 0)
 		{
-			send_cfg(rm, tas58xx->dsp_cfg_data, tas58xx->dsp_cfg_len);
+			send_cfg_ops(rm, tas58xx->dsp_cfg_ops, tas58xx->dsp_cfg_num_ops);
 		}
 		
 		/* Apply bridge mode setting from device tree after DSP boot */
@@ -1500,52 +1633,53 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 		return PTR_ERR(tas58xx->gpio_pdn_n);
 	}
 
-	/* This configuration must be generated by PPC3. The file loaded
-	 * consists of a sequence of register writes, where bytes at
-	 * even indices are register addresses and those at odd indices
-	 * are register values.
+	/* The DSP config file is a PPC3 text register-dump export: lines of
+	 * "w <i2c_addr> <reg> <val>" (all hex) or "d <delay_ms>", with "#"
+	 * comments and blank lines ignored. The fixed portion of PPC3's
+	 * output prior to the 5ms reset delay should be omitted.
 	 *
-	 * The fixed portion of PPC3's output prior to the 5ms delay
-	 * should be omitted.
+	 * A single export may cover multiple DACs at different I2C
+	 * addresses sharing one file; only write lines whose address
+	 * matches this device are applied.
 	 *
-	 * If the device node does not
-	 * provide `ti,dsp-config-name` just warn and continue with an
-	 * empty configuration set. If a name is provided, attempt to
-	 * load the firmware and fail probe on error.
+	 * If the device node does not provide `ti,dsp-config-name` just
+	 * warn and continue with an empty configuration set. If a name is
+	 * provided, attempt to load the firmware and fail probe on error.
 	 */
 	if (device_property_read_string(dev, "ti,dsp-config-name",
 					&config_name)) {
-		dev_warn(dev, "%s: no ti,dsp-config-name provided; continuing without DSP config\n", 
+		dev_warn(dev, "%s: no ti,dsp-config-name provided; continuing without DSP config\n",
 			__func__);
 		config_name = NULL;
 	}
 
 	if (config_name) {
-		snprintf(filename, sizeof(filename), "tas58xx_dsp_%s.bin",
+		snprintf(filename, sizeof(filename), "tas58xx_dsp_%s.cfg",
 			 config_name);
 		ret = request_firmware(&fw, filename, dev);
 		if (ret)
 			return ret;
 
-		if ((fw->size < 2) || (fw->size & 1)) {
-			dev_err(dev, "%s: firmware is invalid\n", 
-				__func__);
-			release_firmware(fw);
-			return -EINVAL;
-		}
-
-		tas58xx->dsp_cfg_len = fw->size;
-		tas58xx->dsp_cfg_data = devm_kmemdup(dev, fw->data, fw->size, GFP_KERNEL);
-		if (!tas58xx->dsp_cfg_data) {
-			release_firmware(fw);
-			return -ENOMEM;
-		}
-
+		ret = tas58xx_parse_text_config(dev, i2c->addr,
+						 (const char *)fw->data, fw->size,
+						 &tas58xx->dsp_cfg_ops,
+						 &tas58xx->dsp_cfg_num_ops);
 		release_firmware(fw);
+		if (ret)
+			return ret;
+
+		if (tas58xx->dsp_cfg_num_ops > 0) {
+			tas58xx->dsp_cfg_loaded = true;
+			dev_info(dev, "%s: loaded %d DSP config operations for I2C address 0x%02x from %s\n",
+				 __func__, tas58xx->dsp_cfg_num_ops, i2c->addr, filename);
+		} else {
+			dev_warn(dev, "%s: no entries for I2C address 0x%02x found in %s\n",
+				 __func__, i2c->addr, filename);
+		}
 	} else {
 		/* No config provided: initialize empty configset */
-		tas58xx->dsp_cfg_len = 0;
-		tas58xx->dsp_cfg_data = NULL;
+		tas58xx->dsp_cfg_num_ops = 0;
+		tas58xx->dsp_cfg_ops = NULL;
 	}
 
 	/* Do the first part of the power-on here, while we can expect
@@ -1745,37 +1879,52 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 		return -ENOMEM;
 	}
 
+	/* A loaded text DSP config overrides EQ, crossover, mixer routing
+	 * and per-channel volume registers directly, so those ALSA controls
+	 * would be misleading (changes made through them would either be
+	 * silently clobbered on the next config load or fight with values
+	 * the config already set) and are left unregistered in that case.
+	 */
+	bool expose_eq_mixer_controls = !tas58xx->dsp_cfg_loaded;
+
 	/* Determine which EQ controls to add based on mode */
-	switch (tas58xx->eq_mode_type) {
-	case TAS58XX_EQ_MODE_15BAND:
-		eq_controls = tas58xx_snd_controls_eq_15band;
-		eq_controls_size = sizeof(tas58xx_snd_controls_eq_15band);
-		break;
-	case TAS58XX_EQ_MODE_LF_CROSSOVER:
-	case TAS58XX_EQ_MODE_HF_CROSSOVER:
-		eq_controls = tas58xx_snd_controls_crossover;
-		eq_controls_size = sizeof(tas58xx_snd_controls_crossover);
-		break;
-	case TAS58XX_EQ_MODE_OFF:
-	default:
+	if (expose_eq_mixer_controls) {
+		switch (tas58xx->eq_mode_type) {
+		case TAS58XX_EQ_MODE_15BAND:
+			eq_controls = tas58xx_snd_controls_eq_15band;
+			eq_controls_size = sizeof(tas58xx_snd_controls_eq_15band);
+			break;
+		case TAS58XX_EQ_MODE_LF_CROSSOVER:
+		case TAS58XX_EQ_MODE_HF_CROSSOVER:
+			eq_controls = tas58xx_snd_controls_crossover;
+			eq_controls_size = sizeof(tas58xx_snd_controls_crossover);
+			break;
+		case TAS58XX_EQ_MODE_OFF:
+		default:
+			eq_controls = NULL;
+			eq_controls_size = 0;
+			break;
+		}
+	} else {
 		eq_controls = NULL;
 		eq_controls_size = 0;
-		break;
 	}
 
 	/* Calculate total number of controls */
 	num_controls = ARRAY_SIZE(tas58xx_snd_controls_base);
 	if (tas58xx->fault_monitor)
 		num_controls += ARRAY_SIZE(tas58xx_snd_controls_faults);
-	if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF)
-		num_controls += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
-	if (!tas58xx->mixer_mode_from_dt)
-		num_controls += ARRAY_SIZE(tas58xx_snd_controls_mixer);
-	/* Add channel volume controls (mono for bridge mode, stereo otherwise) */
-	if (tas58xx->bridge_mode)
-		num_controls += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_mono);
-	else
-		num_controls += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_stereo);
+	if (expose_eq_mixer_controls) {
+		if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF)
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
+		if (!tas58xx->mixer_mode_from_dt)
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_mixer);
+		/* Add channel volume controls (mono for bridge mode, stereo otherwise) */
+		if (tas58xx->bridge_mode)
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_mono);
+		else
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_stereo);
+	}
 	if (eq_controls)
 		num_controls += eq_controls_size / sizeof(struct snd_kcontrol_new);
 
@@ -1797,25 +1946,27 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 		offset += ARRAY_SIZE(tas58xx_snd_controls_faults);
 	}
 
-	/* Add Equalizer toggle control if EQ mode is not OFF */
-	if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF) {
-		memcpy(&controls[offset], tas58xx_snd_controls_eq_toggle, sizeof(tas58xx_snd_controls_eq_toggle));
-		offset += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
-	}
+	if (expose_eq_mixer_controls) {
+		/* Add Equalizer toggle control if EQ mode is not OFF */
+		if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF) {
+			memcpy(&controls[offset], tas58xx_snd_controls_eq_toggle, sizeof(tas58xx_snd_controls_eq_toggle));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
+		}
 
-	/* Add mixer controls if not controlled by device tree */
-	if (!tas58xx->mixer_mode_from_dt) {
-		memcpy(&controls[offset], tas58xx_snd_controls_mixer, sizeof(tas58xx_snd_controls_mixer));
-		offset += ARRAY_SIZE(tas58xx_snd_controls_mixer);
-	}
+		/* Add mixer controls if not controlled by device tree */
+		if (!tas58xx->mixer_mode_from_dt) {
+			memcpy(&controls[offset], tas58xx_snd_controls_mixer, sizeof(tas58xx_snd_controls_mixer));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_mixer);
+		}
 
-	/* Add per-channel volume controls (mono for bridge mode, stereo otherwise) */
-	if (tas58xx->bridge_mode) {
-		memcpy(&controls[offset], tas58xx_snd_controls_channel_volume_mono, sizeof(tas58xx_snd_controls_channel_volume_mono));
-		offset += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_mono);
-	} else {
-		memcpy(&controls[offset], tas58xx_snd_controls_channel_volume_stereo, sizeof(tas58xx_snd_controls_channel_volume_stereo));
-		offset += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_stereo);
+		/* Add per-channel volume controls (mono for bridge mode, stereo otherwise) */
+		if (tas58xx->bridge_mode) {
+			memcpy(&controls[offset], tas58xx_snd_controls_channel_volume_mono, sizeof(tas58xx_snd_controls_channel_volume_mono));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_mono);
+		} else {
+			memcpy(&controls[offset], tas58xx_snd_controls_channel_volume_stereo, sizeof(tas58xx_snd_controls_channel_volume_stereo));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_stereo);
+		}
 	}
 
 	/* Add EQ or crossover controls if applicable */
@@ -1824,7 +1975,10 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 	}
 
 	/* Log control registration */
-	if (tas58xx->mixer_mode_from_dt && eq_controls)
+	if (tas58xx->dsp_cfg_loaded)
+		dev_info(dev, "%s: Registered %d controls (EQ/mixer/channel volume controls hidden: DSP config loaded)\n",
+			 __func__, num_controls);
+	else if (tas58xx->mixer_mode_from_dt && eq_controls)
 		dev_dbg(dev, "%s: Registered %d controls (mixer from DT, with %s)\n", 
 			__func__, num_controls, tas58xx->eq_mode_type == TAS58XX_EQ_MODE_15BAND ? "15-band EQ" : "crossover");
 	else if (tas58xx->mixer_mode_from_dt)
