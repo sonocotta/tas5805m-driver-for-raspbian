@@ -1,5 +1,7 @@
 # TAS5805M/TAS5825M DAC Linux kernel module 
 
+[![Build kernel module](https://github.com/sonocotta/tas5805m-driver-for-raspbian/actions/workflows/build.yml/badge.svg)](https://github.com/sonocotta/tas5805m-driver-for-raspbian/actions/workflows/build.yml)
+
 This is a kernel module code to run TAS5805M and TAS5825M DACs on Raspberry Pi (Zero, Zero W, Zero 2W), Debian-based distributions (Raspbian, Volumio, DietPI, etc)
 
 The repository contains the device tree and source for the `tas58xx` kernel module. It supports both TAS5805M and TAS5825M chips from the same family, with automatic detection based on I2C address. The module contains step-by-step instructions on how to use it.

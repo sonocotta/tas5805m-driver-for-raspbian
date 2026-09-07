@@ -1,0 +1,48 @@
+name: Build kernel module
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build against ${{ matrix.os }} host kernel
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Different runner images track different 6.x kernel lines, so
+        # building against both gives some spread across 6.x versions
+        # without pinning to a specific kernel package that may age out
+        # of the apt archive.
+        os: [ubuntu-22.04, ubuntu-24.04]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show host kernel version
+        run: uname -r
+
+      - name: Require a 6.x kernel
+        run: |
+          KVER="$(uname -r)"
+          case "$KVER" in
+            6.*) echo "Host kernel $KVER is 6.x, OK" ;;
+            *) echo "::error::Host kernel $KVER is not a 6.x kernel"; exit 1 ;;
+          esac
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential "linux-headers-$(uname -r)"
+
+      - name: Build tas58xx.ko
+        run: make
+
+      - name: Verify module was produced
+        run: test -f tas58xx.ko
+
+      - name: make clean
+        run: make clean
