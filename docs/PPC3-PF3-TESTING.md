@@ -72,3 +72,21 @@ EQ disabled, the DC-block/Gang-EQ/global-EQ flags, and PVDD telemetry.
 
 The raw level-meter controls use ALSA INTEGER64 so the full unsigned 32-bit DSP
 word is representable on both 32-bit and 64-bit kernels.
+
+## Coefficient transport checks
+
+Run `python3 tests/test_ppc3_transport.py` with a C compiler installed. This
+compiles the driver's coefficient helpers against a fake regmap and checks byte
+order, contiguous writes, page-boundary splits, failed selections and writes,
+and control-page restoration. It does not exercise the kernel, the physical
+I2C bus or audio playback. The checks also run in the kernel build workflow.
+
+An earlier Rondo build with these driver fixes was built and installed on a
+TAS5825M Pi running kernel 6.18.50+rpt-rpi-v8. DSP persistence and speaker
+protection checks passed. That build did not include this branch's later
+INTEGER64 meter change; the combined branch still needs testing on a Pi.
+Listening checks for live EQ and crossover edits were outstanding in the
+hardware notes.
+
+The playback and coefficient-access fixes were adapted from the TAS58xx Local
+Repair Kit v0.2 reviewed for Rondo.

@@ -29,6 +29,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/atomic.h>
 #include <linux/workqueue.h>
+#include <linux/spinlock.h>
 
 #include <sound/soc.h>
 #include <sound/pcm.h>
@@ -188,9 +189,9 @@ struct tas58xx_priv {
 	struct list_head		list;  /* Linked list of all TAS58XX devices */
 };
 
-/* Global list of all TAS58XX devices and lock */
+/* Global list of all TAS58XX devices and lock (the PCM trigger may be atomic) */
 static LIST_HEAD(tas58xx_device_list);
-static DEFINE_MUTEX(tas58xx_list_mutex);
+static DEFINE_SPINLOCK(tas58xx_list_lock);
 
 static void tas58xx_decode_faults(struct device *dev, unsigned int chan,
 				   unsigned int global1, unsigned int global2,
@@ -1157,6 +1158,30 @@ struct tas58xx_profile_coeff_ctrl {
 	unsigned int count;
 };
 
+/* Book + page select that reports I2C errors (SET_BOOK_AND_PAGE ignores them). */
+static int tas58xx_select_page(struct regmap *rm, unsigned int book,
+			       unsigned int page)
+{
+	int ret;
+
+	ret = regmap_write(rm, TAS58XX_REG_PAGE_SET, TAS58XX_REG_PAGE_0);
+	if (ret)
+		return ret;
+	ret = regmap_write(rm, TAS58XX_REG_BOOK_SET, book);
+	if (ret)
+		return ret;
+	return regmap_write(rm, TAS58XX_REG_PAGE_SET, page);
+}
+
+static int tas58xx_select_page0(struct tas58xx_priv *tas58xx, int ret)
+{
+	int rret = tas58xx_select_page(tas58xx->regmap,
+				       TAS58XX_BOOK_CONTROL_PORT,
+				       TAS58XX_REG_PAGE_0);
+
+	return ret ? ret : rret;
+}
+
 static int tas5825m_ppc3_coeff_addr(unsigned int coeff, u8 *book,
 				    u8 *page, u8 *reg)
 {
@@ -1191,7 +1216,9 @@ static int tas5825m_ppc3_read_coeff(struct tas58xx_priv *tas58xx,
 	if (ret)
 		return ret;
 
-	SET_BOOK_AND_PAGE(tas58xx->regmap, book, page);
+	ret = tas58xx_select_page(tas58xx->regmap, book, page);
+	if (ret)
+		return ret;
 	ret = regmap_bulk_read(tas58xx->regmap, reg, buf, sizeof(buf));
 	if (ret)
 		return ret;
@@ -1218,24 +1245,26 @@ static int tas5825m_ppc3_write_coeff(struct tas58xx_priv *tas58xx,
 	buf[2] = (raw >> 8) & 0xff;
 	buf[3] = raw & 0xff;
 
-	SET_BOOK_AND_PAGE(tas58xx->regmap, book, page);
+	ret = tas58xx_select_page(tas58xx->regmap, book, page);
+	if (ret)
+		return ret;
 	return regmap_bulk_write(tas58xx->regmap, reg, buf, sizeof(buf));
 }
 
-/* Write a complete B0/B1/B2/A1/A2 biquad. */
+/* Write a complete B0/B1/B2/A1/A2 biquad. Contiguous coefficients within
+ * one page are sent with one regmap bulk write; split at page boundaries.
+ */
 static int tas5825m_ppc3_write_biquad(struct tas58xx_priv *tas58xx,
 				      unsigned int start_coeff,
 				      const s32 values[5])
 {
-	u8 current_book = 0xff;
-	u8 current_page = 0xff;
-	unsigned int i, byte_i;
+	unsigned int i = 0;
 	int ret;
 
-	for (i = 0; i < 5; i++) {
-		u8 book, page, reg;
-		u32 raw = (u32)values[i];
-		u8 buf[4];
+	while (i < 5) {
+		u8 book, page, reg, nbook = 0, npage = 0, nreg = 0;
+		u8 buf[20];
+		unsigned int n = 0;
 
 		ret = tas5825m_ppc3_coeff_addr(start_coeff + i,
 					       &book, &page, &reg);
@@ -1244,23 +1273,29 @@ static int tas5825m_ppc3_write_biquad(struct tas58xx_priv *tas58xx,
 		if (book != TAS5825M_PPC3_BOOK1)
 			return -EINVAL;
 
-		if (book != current_book || page != current_page) {
-			SET_BOOK_AND_PAGE(tas58xx->regmap, book, page);
-			current_book = book;
-			current_page = page;
-		}
+		do {
+			u32 raw = (u32)values[i + n];
 
-		buf[0] = (raw >> 24) & 0xff;
-		buf[1] = (raw >> 16) & 0xff;
-		buf[2] = (raw >> 8) & 0xff;
-		buf[3] = raw & 0xff;
-
-		for (byte_i = 0; byte_i < 4; byte_i++) {
-			ret = regmap_write(tas58xx->regmap,
-					   reg + byte_i, buf[byte_i]);
+			buf[4 * n] = (raw >> 24) & 0xff;
+			buf[4 * n + 1] = (raw >> 16) & 0xff;
+			buf[4 * n + 2] = (raw >> 8) & 0xff;
+			buf[4 * n + 3] = raw & 0xff;
+			n++;
+			if (i + n >= 5)
+				break;
+			ret = tas5825m_ppc3_coeff_addr(start_coeff + i + n,
+						       &nbook, &npage, &nreg);
 			if (ret)
 				return ret;
-		}
+		} while (nbook == book && npage == page && nreg == reg + 4 * n);
+
+		ret = tas58xx_select_page(tas58xx->regmap, book, page);
+		if (ret)
+			return ret;
+		ret = regmap_bulk_write(tas58xx->regmap, reg, buf, 4 * n);
+		if (ret)
+			return ret;
+		i += n;
 	}
 
 	return 0;
@@ -1310,8 +1345,7 @@ static int tas58xx_profile_coeff_get(struct snd_kcontrol *kcontrol,
 	}
 
 restore:
-	SET_BOOK_AND_PAGE(tas58xx->regmap,
-			  TAS58XX_BOOK_CONTROL_PORT, TAS58XX_REG_PAGE_0);
+	ret = tas58xx_select_page0(tas58xx, ret);
 out:
 	mutex_unlock(&tas58xx->lock);
 	return ret;
@@ -1397,8 +1431,7 @@ static int tas58xx_profile_coeff_put(struct snd_kcontrol *kcontrol,
 	}
 
 restore:
-	SET_BOOK_AND_PAGE(tas58xx->regmap,
-			  TAS58XX_BOOK_CONTROL_PORT, TAS58XX_REG_PAGE_0);
+	ret = tas58xx_select_page0(tas58xx, ret);
 out:
 	mutex_unlock(&tas58xx->lock);
 	if (ret)
@@ -1443,16 +1476,16 @@ static int tas58xx_meter_get(struct snd_kcontrol *kcontrol,
 		goto out;
 	}
 
-	SET_BOOK_AND_PAGE(tas58xx->regmap, 0x78, 0x01);
-	ret = regmap_bulk_read(tas58xx->regmap, ctrl->reg, buf, sizeof(buf));
+	ret = tas58xx_select_page(tas58xx->regmap, 0x78, 0x01);
+	if (!ret)
+		ret = regmap_bulk_read(tas58xx->regmap, ctrl->reg, buf, sizeof(buf));
 	if (!ret) {
 		raw = ((u32)buf[0] << 24) | ((u32)buf[1] << 16) |
 		      ((u32)buf[2] << 8) | (u32)buf[3];
 		ucontrol->value.integer64.value[0] = (long long)raw;
 	}
 
-	SET_BOOK_AND_PAGE(tas58xx->regmap,
-			  TAS58XX_BOOK_CONTROL_PORT, TAS58XX_REG_PAGE_0);
+	ret = tas58xx_select_page0(tas58xx, ret);
 out:
 	mutex_unlock(&tas58xx->lock);
 	return ret;
@@ -1624,9 +1657,10 @@ static int tas58xx_pvdd_get(struct snd_kcontrol *kcontrol,
 	int ret;
 
 	mutex_lock(&tas58xx->lock);
-	SET_BOOK_AND_PAGE(tas58xx->regmap,
-			  TAS58XX_BOOK_CONTROL_PORT, TAS58XX_REG_PAGE_0);
-	ret = regmap_read(tas58xx->regmap, TAS5825M_REG_PVDD_ADC, &raw);
+	ret = tas58xx_select_page(tas58xx->regmap,
+				  TAS58XX_BOOK_CONTROL_PORT, TAS58XX_REG_PAGE_0);
+	if (!ret)
+		ret = regmap_read(tas58xx->regmap, TAS5825M_REG_PVDD_ADC, &raw);
 	mutex_unlock(&tas58xx->lock);
 	if (ret)
 		return ret;
@@ -1983,17 +2017,18 @@ static int tas58xx_trigger(struct snd_pcm_substream *substream, int cmd,
 		 * This ensures both primary and secondary codecs get initialized
 		 * when playback starts, since TRIGGER events only reach primary.
 		 */
-		mutex_lock(&tas58xx_list_mutex);
-		list_for_each_entry(priv, &tas58xx_device_list, list) {
-			mutex_lock(&priv->lock);
-			if (!priv->is_powered && !work_pending(&priv->work)) {
-				dev_dbg(&priv->i2c->dev, "%s: scheduling work for device at 0x%02x\n",
-					__func__, priv->i2c->addr);
+		{
+			unsigned long flags;
+
+			/* No mutex here: this may run in atomic context. schedule_work()
+			 * never sleeps and does nothing while the work is pending;
+			 * do_work() skips a device that is already powered.
+			 */
+			spin_lock_irqsave(&tas58xx_list_lock, flags);
+			list_for_each_entry(priv, &tas58xx_device_list, list)
 				schedule_work(&priv->work);
-			}
-			mutex_unlock(&priv->lock);
+			spin_unlock_irqrestore(&tas58xx_list_lock, flags);
 		}
-		mutex_unlock(&tas58xx_list_mutex);
 		break;
 
 	case SNDRV_PCM_TRIGGER_STOP:
@@ -2018,6 +2053,11 @@ static void do_work(struct work_struct *work)
 		__func__);
 
 	mutex_lock(&tas58xx->lock);
+	if (tas58xx->is_powered) {
+		/* scheduled again by a start/resume while already running */
+		mutex_unlock(&tas58xx->lock);
+		return;
+	}
 	/* We mustn't issue any I2C transactions until the I2S
 	 * clock is stable. Furthermore, we must allow a 5ms
 	 * delay after the first set of register writes to
@@ -2448,11 +2488,6 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 
 	INIT_WORK(&tas58xx->work, do_work);
 	mutex_init(&tas58xx->lock);
-	
-	/* Add to device list for trigger synchronization */
-	mutex_lock(&tas58xx_list_mutex);
-	list_add_tail(&tas58xx->list, &tas58xx_device_list);
-	mutex_unlock(&tas58xx_list_mutex);
 
 	/* Build component driver dynamically based on EQ mode */
 	struct snd_soc_component_driver *soc_codec_dev;
@@ -2620,6 +2655,16 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 		return ret;
 	}
 
+	/* Only a registered codec is visible to the trigger (a failed probe
+	 * used to leave its freed entry on the list).
+	 */
+	{
+		unsigned long flags;
+
+		spin_lock_irqsave(&tas58xx_list_lock, flags);
+		list_add_tail(&tas58xx->list, &tas58xx_device_list);
+		spin_unlock_irqrestore(&tas58xx_list_lock, flags);
+	}
 	return 0;
 }
 
@@ -2632,9 +2677,13 @@ static void tas58xx_i2c_remove(struct i2c_client *i2c)
 		__func__, dev_name(dev));
 
 	/* Remove from device list */
-	mutex_lock(&tas58xx_list_mutex);
-	list_del(&tas58xx->list);
-	mutex_unlock(&tas58xx_list_mutex);
+	{
+		unsigned long flags;
+
+		spin_lock_irqsave(&tas58xx_list_lock, flags);
+		list_del(&tas58xx->list);
+		spin_unlock_irqrestore(&tas58xx_list_lock, flags);
+	}
 
 	cancel_work_sync(&tas58xx->work);
 	snd_soc_unregister_component(dev);
