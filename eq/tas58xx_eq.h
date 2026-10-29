@@ -14,7 +14,6 @@ typedef struct {
     cfg_u8 value;
 } reg_sequence_eq;
 
-/* BQ registers */
 #define TAS58XX_REG_BOOK_EQ 0xAA
 
 #define TAS58XX_EQ_MAX_DB             15

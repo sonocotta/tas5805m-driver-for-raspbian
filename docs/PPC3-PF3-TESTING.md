@@ -81,12 +81,9 @@ order, contiguous writes, page-boundary splits, failed selections and writes,
 and control-page restoration. It does not exercise the kernel, the physical
 I2C bus or audio playback. The checks also run in the kernel build workflow.
 
-An earlier Rondo build with these driver fixes was built and installed on a
+An earlier build with these driver fixes was built and installed on a
 TAS5825M Pi running kernel 6.18.50+rpt-rpi-v8. DSP persistence and speaker
 protection checks passed. That build did not include this branch's later
 INTEGER64 meter change; the combined branch still needs testing on a Pi.
 Listening checks for live EQ and crossover edits were outstanding in the
 hardware notes.
-
-The playback and coefficient-access fixes were adapted from the TAS58xx Local
-Repair Kit v0.2 reviewed for Rondo.

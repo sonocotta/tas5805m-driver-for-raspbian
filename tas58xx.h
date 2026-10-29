@@ -10,7 +10,6 @@
 #ifndef __TAS58XX_H__
 #define __TAS58XX_H__
 
-/* register control codes */
 #define TAS58XX_REG_PAGE_SET 0x00
 #define TAS58XX_REG_BOOK_SET 0x7f
 #define REG_PAGE TAS58XX_REG_PAGE_SET
@@ -19,7 +18,6 @@
 #define TAS58XX_BOOK_CONTROL_PORT 0x00
 #define TAS58XX_REG_PAGE_0        0x00
 
-/* Datasheet-defined registers on page 0, book 0 */
 #define TAS58XX_REG_RESET_CTRL      0x01
 #define TAS58XX_REG_DEVICE_CTRL_1   0x02
 #define TAS58XX_REG_DEVICE_CTRL_2   0x03
@@ -42,45 +40,31 @@
 #define TAS58XX_REG_UNDOCUMENTED_2  0x7e
 #define TAS58XX_REG_PAGE1_UNDOC_0   0x51
 
-/* TAS5805M specific register */
 #define TAS5805M_REG_DSP_MISC       0x66
 
-/* GPIO config on TAS5825M */
 #define TAS5825M_REG_GPIO_CTL       0x60
 #define TAS5825M_REG_GPIO0          0x61
 #define TAS5825M_REG_GPIO1          0x62
 #define TAS5825M_REG_GPIO2          0x63
 #define TAS5825M_REG_GPIO_OFF       0x00
-#define TAS5825M_REG_GPIO_WARN      0b1000   
+#define TAS5825M_REG_GPIO_WARN      0b1000
 #define TAS5825M_REG_GPIO_FAULT     0b1011
 #define TAS5825M_REG_GPIO_SDOUT     0b1001
 #define TAS5825M_REG_GPIO_CTL_OUT   0b0111
 
-/* SDOUT_SEL register values 
-*/
 #define TAS58XX_REG_SDOUT_SEL_POST_DSP 0x0
 #define TAS58XX_REG_SDOUT_SEL_PRE_DSP  0x1
 
-/* Volume control using hardware register TAS58XX_REG_VOL_CTRL (0x4c)
- * Register value to dB mapping:
- *   0x00 = +24.0 dB
- *   0x30 =   0.0 dB  
- *   0xFE = -103.0 dB
- *   0xFF = Mute
- * Hardware step is 0.5 dB, we expose 1.0 dB steps to ALSA
- */
-#define TAS58XX_VOLUME_MAX	0x00  /* +24 dB */
-#define TAS58XX_VOLUME_MIN	0xFE  /* -103 dB */
-#define TAS58XX_VOLUME_ZERO_DB	0x30  /* 0 dB */
+#define TAS58XX_VOLUME_MAX	0x00
+#define TAS58XX_VOLUME_MIN	0xFE
+#define TAS58XX_VOLUME_ZERO_DB	0x30
 
 #define TAS58XX_AGAIN_MAX 0x00
 #define TAS58XX_AGAIN_MIN 0x1F
 
-/* TAS58XX_REG_RESET_CTRL register values */
 #define TAS58XX_RESET_CONTROL_PORT  BIT(0)
 #define TAS58XX_RESET_DSP           BIT(4)
 
-/* TAS58XX_REG_DEVICE_CTRL_1 register values */
 #define TAS58XX_DCTRL1_BD_MODE      0x00
 #define TAS58XX_DCTRL1_1SPW_MODE    0x01
 #define TAS58XX_DCTRL1_HYBRID_MODE  0x02
@@ -90,7 +74,6 @@
 #define TAS58XX_DCTRL1_FSW480KHZ    GENMASK(5,4)
 #define TAS58XX_DCTRL1_FSW576KHZ    BIT(6)
 
-/* TAS58XX_REG_DEVICE_CTRL_2 register values */
 #define TAS58XX_DCTRL2_MODE_DEEP_SLEEP 0x00
 #define TAS58XX_DCTRL2_MODE_SLEEP      0x01
 #define TAS58XX_DCTRL2_MODE_HIZ        0x02
@@ -98,16 +81,13 @@
 #define TAS58XX_DCTRL2_MUTE		    BIT(3)
 #define TAS58XX_DCTRL2_DIS_DSP		    BIT(4)
 
-/* TAS58XX_REG_FAULT register values */
 #define TAS58XX_ANALOG_FAULT_CLEAR 0x80
 
-/* Level meter register definitions */
 #define TAS5805M_BOOK_4 0x78
 #define TAS5805M_REG_BOOK_4_LEVEL_METER_PAGE 0x02
 #define TAS5805M_REG_LEVEL_METER_LEFT 0x60
 #define TAS5805M_REG_LEVEL_METER_RIGHT 0x64
 
-/* Mixer register definitions */
 #define TAS5805M_BOOK_5 0x8c
 #define TAS5805M_BOOK_5_MIXER_PAGE 0x29
 #define TAS5805M_REG_LEFT_TO_LEFT_GAIN 0x18
@@ -131,10 +111,9 @@
 #define TAS5825M_REG_RIGHT_VOLUME 0x10
 
 #define TAS5825M_BOOK_5_EQ_PAGE 0x0B
-#define TAS5825M_REG_EQ_GANG_ENABLE 0x28   
-#define TAS5825M_REG_EQ_BYPASS_ENABLE 0x2C 
+#define TAS5825M_REG_EQ_GANG_ENABLE 0x28
+#define TAS5825M_REG_EQ_BYPASS_ENABLE 0x2C
 
-/* Mixer gain values */
 #define TAS58XX_MIXER_MIN_DB -110
 #define TAS58XX_MIXER_MAX_DB 0
 #define TAS58XX_MIXER_HALFMAX_DB -6
@@ -142,4 +121,4 @@
 #define TAS58XX_MIXER_VALUE_0DB 0x00008000
 #define TAS58XX_MIXER_VALUE_MINUS6DB 0x00004000
 
-#endif /* __TAS58XX_H__ */
+#endif

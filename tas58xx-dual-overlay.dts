@@ -1,9 +1,5 @@
-// Definitions for Dual TAS5805M/TAS5825M setup
-// dtc -I dts -O dtb -o /boot/overlays/tas58xx-dual.dtbo tas58xx-dual-overlay.dts
-// bash: "sudo dtoverlay tas58xx-dual <i2creg_primary=...> <pdn_gpio_primary=...> <i2creg_secondary=...> <pdn_gpio_secondary=...> <eq_mode_primary=...> <eq_mode_secondary=...> <mixer_mode_primary=...> <mixer_mode_secondary=...> <bridge_mode_primary=...> <bridge_mode_secondary=...> <fault_monitor_primary=...> <fault_monitor_secondary=...>"
-// /boot/config.txt: "dtoverlay=tas58xx-dual<,i2creg_primary=...><,pdn_gpio_primary=...><,i2creg_secondary=...><,pdn_gpio_secondary=...><,eq_mode_primary=...><,eq_mode_secondary=...><,mixer_mode_primary=...><,mixer_mode_secondary=...><,bridge_mode_primary=...><,bridge_mode_secondary=...><,fault_monitor_primary=...><,fault_monitor_secondary=...>"
-// Primary DAC defaults: I2C=0x2d, GPIO=4, EQ=15-band, Mixer=Stereo, Bridge=off, FaultMonitor=off
-// Secondary DAC defaults: I2C=0x2e, GPIO=5, EQ=LF Crossover, Mixer=Mono, Bridge=on, FaultMonitor=off
+
+
 /dts-v1/;
 /plugin/;
 
@@ -32,20 +28,15 @@
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 4 0>;
                 sound-name-prefix = "2.0";
-                /* ti,modulation-mode: 0=BD, 1=1SPW, 2=Hybrid (default) */
+
                 ti,modulation-mode = <0>;
-                
-                /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
+
                 ti,switching-freq = <0>;
-                /* Normal stereo mode for left/right speakers */
-                
-                /* ti,eq-mode: 0=OFF, 1=15-band (default), 2=LF Crossover, 3=HF Crossover */
+
                 ti,eq-mode = <1>;
-                
-                /* ti,mixer-mode: 0=Stereo (default), 1=Mono, 2=Left, 3=Right */
+
                 ti,mixer-mode = <0>;
-                
-                /* ti,fault-monitor: disabled by default in dual DAC configs to reduce control clutter */
+
             };
 
             codec_secondary: tas58xx@2e {
@@ -55,22 +46,17 @@
                 pvdd-supply = <&vdd_3v3_reg>;
                 pdn-gpios = <&gpio 5 0>;
                 sound-name-prefix = "0.1";
-                /* ti,modulation-mode: 0=BD, 1=1SPW, 2=Hybrid (default) */
+
                 ti,modulation-mode = <1>;
-                
-                /* ti,switching-freq: 0=768K (default), 1=384K, 2=480K, 3=576K */
+
                 ti,switching-freq = <0>;
-                
-                /* Bridge/PBTL mode for subwoofer (more power from single speaker) */
+
                 ti,bridge-mode;
-                
-                /* ti,eq-mode: 0=OFF, 1=15-band, 2=LF Crossover (for subwoofer), 3=HF Crossover */
+
                 ti,eq-mode = <2>;
-                
-                /* ti,mixer-mode: 1=Mono for subwoofer (mix L+R) */
+
                 ti,mixer-mode = <1>;
-                
-                /* ti,fault-monitor: disabled by default in dual DAC configs to reduce control clutter */
+
             };
         };
     };
@@ -94,7 +80,7 @@
                 "Subwoofer", "0.1 OUTA",
                 "Subwoofer", "0.1 OUTB",
                 "0.1 DAC IN", "2.0 DAC";
-            
+
             cpu_dai: simple-audio-card,cpu {
                 sound-dai = <&i2s>;
                 dai-tdm-slot-num = <2>;

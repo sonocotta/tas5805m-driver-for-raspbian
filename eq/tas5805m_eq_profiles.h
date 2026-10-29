@@ -7,13 +7,8 @@ extern "C"
 {
 #endif
 
-    // 2 bands use to create 4-order filter, 1 more band to compensate the gain for HF filter
-    // 1: Chebyshev 2nd-order low-pass or high-pass filter
-    // 2: Chebyshev 2nd-order low-pass or high-pass filter
-    // 3: High Shelf
-
 static const reg_sequence_eq tas5805m_eq_registers_left_flat[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x08}, //  Biquad -  BQ1 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x08},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x00},
     {0x24, 0x1b, 0x00},
@@ -33,7 +28,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_flat[TAS58XX_EQ_PROFILE_
     {0x24, 0x29, 0x00},
     {0x24, 0x2a, 0x00},
     {0x24, 0x2b, 0x00},
-    {0x24, 0x2c, 0x08}, //  Biquad -  BQ2 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x08},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x00},
     {0x24, 0x2f, 0x00},
@@ -53,7 +48,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_flat[TAS58XX_EQ_PROFILE_
     {0x24, 0x3d, 0x00},
     {0x24, 0x3e, 0x00},
     {0x24, 0x3f, 0x00},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -76,7 +71,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_flat[TAS58XX_EQ_PROFILE_
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_60[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 60 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x02},
     {0x24, 0x1b, 0xe3},
@@ -96,7 +91,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_60[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x0b},
     {0x24, 0x2a, 0x6e},
     {0x24, 0x2b, 0xfa},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 60 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x02},
     {0x24, 0x2f, 0xe3},
@@ -116,7 +111,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_60[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x0b},
     {0x24, 0x3e, 0x6e},
     {0x24, 0x3f, 0xfa},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -139,7 +134,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_60[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_70[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 70 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x03},
     {0x24, 0x1b, 0xed},
@@ -159,7 +154,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_70[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x0d},
     {0x24, 0x2a, 0x55},
     {0x24, 0x2b, 0x36},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 70 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x03},
     {0x24, 0x2f, 0xed},
@@ -179,7 +174,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_70[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x0d},
     {0x24, 0x3e, 0x55},
     {0x24, 0x3f, 0x36},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -202,7 +197,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_70[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_80[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 80 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x05},
     {0x24, 0x1b, 0x20},
@@ -222,7 +217,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_80[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x0f},
     {0x24, 0x2a, 0x3a},
     {0x24, 0x2b, 0xfe},
-    {0x24, 0x2c, 0x00}, // Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 80 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x05},
     {0x24, 0x2f, 0x20},
@@ -242,7 +237,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_80[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x0f},
     {0x24, 0x3e, 0x3a},
     {0x24, 0x3f, 0xfe},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -265,7 +260,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_80[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_90[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 90 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x06},
     {0x24, 0x1b, 0x7c},
@@ -285,7 +280,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_90[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x11},
     {0x24, 0x2a, 0x20},
     {0x24, 0x2b, 0x52},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 90 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x06},
     {0x24, 0x2f, 0x7c},
@@ -305,7 +300,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_90[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x11},
     {0x24, 0x3e, 0x20},
     {0x24, 0x3f, 0x52},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -328,7 +323,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_90[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_100[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 100 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x08},
     {0x24, 0x1b, 0x00},
@@ -348,7 +343,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_100[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x13},
     {0x24, 0x2a, 0x05},
     {0x24, 0x2b, 0x31},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 100 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x08},
     {0x24, 0x2f, 0x00},
@@ -368,7 +363,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_100[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x13},
     {0x24, 0x3e, 0x05},
     {0x24, 0x3f, 0x31},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -391,7 +386,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_100[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_110[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 110 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x09},
     {0x24, 0x1b, 0xad},
@@ -411,7 +406,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_110[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x14},
     {0x24, 0x2a, 0xe9},
     {0x24, 0x2b, 0x9c},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 110 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x09},
     {0x24, 0x2f, 0xad},
@@ -431,7 +426,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_110[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x14},
     {0x24, 0x3e, 0xe9},
     {0x24, 0x3f, 0x9c},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -454,7 +449,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_110[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_120[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, // Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 120 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x0b},
     {0x24, 0x1b, 0x82},
@@ -474,7 +469,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_120[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x16},
     {0x24, 0x2a, 0xcd},
     {0x24, 0x2b, 0x93},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 120 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x0b},
     {0x24, 0x2f, 0x82},
@@ -494,7 +489,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_120[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x16},
     {0x24, 0x3e, 0xcd},
     {0x24, 0x3f, 0x93},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -517,7 +512,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_120[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_130[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //   Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 130 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x0d},
     {0x24, 0x1b, 0x80},
@@ -537,7 +532,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_130[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x18},
     {0x24, 0x2a, 0xb1},
     {0x24, 0x2b, 0x16},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 130 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x0d},
     {0x24, 0x2f, 0x80},
@@ -557,7 +552,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_130[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x18},
     {0x24, 0x3e, 0xb1},
     {0x24, 0x3f, 0x16},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -580,7 +575,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_130[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_140[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 140 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x0f},
     {0x24, 0x1b, 0xa6},
@@ -600,7 +595,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_140[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x1a},
     {0x24, 0x2a, 0x94},
     {0x24, 0x2b, 0x26},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 140 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x0f},
     {0x24, 0x2f, 0xa6},
@@ -620,7 +615,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_140[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x1a},
     {0x24, 0x3e, 0x94},
     {0x24, 0x3f, 0x26},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -643,7 +638,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_140[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_lf_150[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x00}, //  Biquad -  BQ1 Left   -     Filter: Low Pass-Chebyshev  Frequency: 150 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x00},
     {0x24, 0x19, 0x00},
     {0x24, 0x1a, 0x11},
     {0x24, 0x1b, 0xf5},
@@ -663,7 +658,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_150[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x1c},
     {0x24, 0x2a, 0x76},
     {0x24, 0x2b, 0xc1},
-    {0x24, 0x2c, 0x00}, //  Biquad -  BQ2 Left   -     Filter: Low Pass-Chebyshev  Frequency: 150 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x00},
     {0x24, 0x2d, 0x00},
     {0x24, 0x2e, 0x11},
     {0x24, 0x2f, 0xf5},
@@ -683,7 +678,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_150[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x1c},
     {0x24, 0x3e, 0x76},
     {0x24, 0x3f, 0xc1},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: All Pass  Frequency: 1000 Hz  QVal: 0.71  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0x00},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0x00},
@@ -706,7 +701,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_lf_150[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_60[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 60 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x89},
     {0x24, 0x1a, 0xde},
     {0x24, 0x1b, 0x6d},
@@ -726,7 +721,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_60[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x07},
     {0x24, 0x2a, 0x8c},
     {0x24, 0x2b, 0x4f},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 60 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x89},
     {0x24, 0x2e, 0xde},
     {0x24, 0x2f, 0x6d},
@@ -746,7 +741,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_60[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x07},
     {0x24, 0x3e, 0x8c},
     {0x24, 0x3f, 0x4f},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 200 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf8},
     {0x24, 0x42, 0x2c},
     {0x24, 0x43, 0x87},
@@ -769,7 +764,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_60[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_70[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 70 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x89},
     {0x24, 0x1a, 0x46},
     {0x24, 0x1b, 0x48},
@@ -789,7 +784,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_70[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x08},
     {0x24, 0x2a, 0xcd},
     {0x24, 0x2b, 0xaa},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 70 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x89},
     {0x24, 0x2e, 0x46},
     {0x24, 0x2f, 0x48},
@@ -809,7 +804,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_70[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x08},
     {0x24, 0x3e, 0xcd},
     {0x24, 0x3f, 0xaa},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 200 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf8},
     {0x24, 0x42, 0x2c},
     {0x24, 0x43, 0x87},
@@ -832,7 +827,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_70[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_80[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 80 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x88},
     {0x24, 0x1a, 0xae},
     {0x24, 0x1b, 0x29},
@@ -852,7 +847,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_80[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x0a},
     {0x24, 0x2a, 0x0e},
     {0x24, 0x2b, 0xd3},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 80 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x88},
     {0x24, 0x2e, 0xae},
     {0x24, 0x2f, 0x29},
@@ -872,7 +867,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_80[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x0a},
     {0x24, 0x3e, 0x0e},
     {0x24, 0x3f, 0xd3},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 200 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf8},
     {0x24, 0x42, 0x2c},
     {0x24, 0x43, 0x87},
@@ -895,7 +890,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_80[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_90[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 90 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x88},
     {0x24, 0x1a, 0x16},
     {0x24, 0x1b, 0x11},
@@ -915,7 +910,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_90[TAS58XX_EQ_PROFILE
     {0x24, 0x29, 0x0b},
     {0x24, 0x2a, 0x4f},
     {0x24, 0x2b, 0xca},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 90 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x88},
     {0x24, 0x2e, 0x16},
     {0x24, 0x2f, 0x11},
@@ -935,7 +930,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_90[TAS58XX_EQ_PROFILE
     {0x24, 0x3d, 0x0b},
     {0x24, 0x3e, 0x4f},
     {0x24, 0x3f, 0xca},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 200 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf8},
     {0x24, 0x42, 0x2c},
     {0x24, 0x43, 0x87},
@@ -958,7 +953,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_90[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_100[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 100 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x87},
     {0x24, 0x1a, 0x7d},
     {0x24, 0x1b, 0xfe},
@@ -978,7 +973,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_100[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x0c},
     {0x24, 0x2a, 0x90},
     {0x24, 0x2b, 0x8e},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 100 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x87},
     {0x24, 0x2e, 0x7d},
     {0x24, 0x2f, 0xfe},
@@ -998,7 +993,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_100[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x0c},
     {0x24, 0x3e, 0x90},
     {0x24, 0x3f, 0x8e},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 200 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf8},
     {0x24, 0x42, 0x2c},
     {0x24, 0x43, 0x87},
@@ -1021,7 +1016,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_100[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_110[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 110 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x86},
     {0x24, 0x1a, 0xe5},
     {0x24, 0x1b, 0xf2},
@@ -1041,7 +1036,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_110[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x0d},
     {0x24, 0x2a, 0xd1},
     {0x24, 0x2b, 0x1f},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 110 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x86},
     {0x24, 0x2e, 0xe5},
     {0x24, 0x2f, 0xf2},
@@ -1061,7 +1056,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_110[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x0d},
     {0x24, 0x3e, 0xd1},
     {0x24, 0x3f, 0x1f},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 220 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf8},
     {0x24, 0x42, 0x00},
     {0x24, 0x43, 0xd4},
@@ -1084,7 +1079,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_110[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_120[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 120 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x86},
     {0x24, 0x1a, 0x4d},
     {0x24, 0x1b, 0xeb},
@@ -1104,7 +1099,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_120[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x0f},
     {0x24, 0x2a, 0x11},
     {0x24, 0x2b, 0x7e},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 120 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x86},
     {0x24, 0x2e, 0x4d},
     {0x24, 0x2f, 0xeb},
@@ -1124,7 +1119,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_120[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x0f},
     {0x24, 0x3e, 0x11},
     {0x24, 0x3f, 0x7e},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 240 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf7},
     {0x24, 0x42, 0xd5},
     {0x24, 0x43, 0x31},
@@ -1147,7 +1142,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_120[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_130[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 130 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x85},
     {0x24, 0x1a, 0xb5},
     {0x24, 0x1b, 0xeb},
@@ -1167,7 +1162,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_130[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x10},
     {0x24, 0x2a, 0x51},
     {0x24, 0x2b, 0xaa},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 130 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x85},
     {0x24, 0x2e, 0xb5},
     {0x24, 0x2f, 0xeb},
@@ -1187,7 +1182,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_130[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x10},
     {0x24, 0x3e, 0x51},
     {0x24, 0x3f, 0xaa},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 260 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf7},
     {0x24, 0x42, 0xa9},
     {0x24, 0x43, 0x9d},
@@ -1210,7 +1205,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_130[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_140[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 140 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x85},
     {0x24, 0x1a, 0x1d},
     {0x24, 0x1b, 0xf1},
@@ -1230,7 +1225,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_140[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x11},
     {0x24, 0x2a, 0x91},
     {0x24, 0x2b, 0xa4},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 140 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x85},
     {0x24, 0x2e, 0x1d},
     {0x24, 0x2f, 0xf1},
@@ -1250,7 +1245,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_140[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x11},
     {0x24, 0x3e, 0x91},
     {0x24, 0x3f, 0xa4},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 280 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf7},
     {0x24, 0x42, 0x7e},
     {0x24, 0x43, 0x18},
@@ -1273,7 +1268,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_140[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_left_hf_150[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x24, 0x18, 0x07}, //  Biquad -  BQ1 Left   -     Filter: High Pass-Chebyshev  Frequency: 150 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x18, 0x07},
     {0x24, 0x19, 0x84},
     {0x24, 0x1a, 0x85},
     {0x24, 0x1b, 0xfd},
@@ -1293,7 +1288,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_150[TAS58XX_EQ_PROFIL
     {0x24, 0x29, 0x12},
     {0x24, 0x2a, 0xd1},
     {0x24, 0x2b, 0x6b},
-    {0x24, 0x2c, 0x07}, //  Biquad -  BQ2 Left   -     Filter: High Pass-Chebyshev  Frequency: 150 Hz  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x2c, 0x07},
     {0x24, 0x2d, 0x84},
     {0x24, 0x2e, 0x85},
     {0x24, 0x2f, 0xfd},
@@ -1313,7 +1308,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_150[TAS58XX_EQ_PROFIL
     {0x24, 0x3d, 0x12},
     {0x24, 0x3e, 0xd1},
     {0x24, 0x3f, 0x6b},
-    {0x24, 0x40, 0x08}, //  Biquad -  BQ3 Left   -     Filter: High Shelf  Frequency: 300 Hz  Gain: 1dB  QVal: 0.5  Bandwidth: 1000 Hz
+    {0x24, 0x40, 0x08},
     {0x24, 0x41, 0xf7},
     {0x24, 0x42, 0x52},
     {0x24, 0x43, 0xa3},
@@ -1336,7 +1331,7 @@ static const reg_sequence_eq tas5805m_eq_registers_left_hf_150[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_flat[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x08}, //		Biquad	-		BQ1	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x08},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x00},
     {0x26, 0x57, 0x00},
@@ -1356,7 +1351,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_flat[TAS58XX_EQ_PROFILE
     {0x26, 0x65, 0x00},
     {0x26, 0x66, 0x00},
     {0x26, 0x67, 0x00},
-    {0x26, 0x68, 0x08}, //		Biquad	-		BQ2	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x08},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x00},
     {0x26, 0x6b, 0x00},
@@ -1376,7 +1371,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_flat[TAS58XX_EQ_PROFILE
     {0x26, 0x79, 0x00},
     {0x26, 0x7a, 0x00},
     {0x26, 0x7b, 0x00},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1399,7 +1394,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_flat[TAS58XX_EQ_PROFILE
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_60[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	60	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x02},
     {0x26, 0x57, 0xe3},
@@ -1419,7 +1414,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_60[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x0b},
     {0x26, 0x66, 0x6e},
     {0x26, 0x67, 0xfa},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	60	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x02},
     {0x26, 0x6b, 0xe3},
@@ -1439,7 +1434,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_60[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x0b},
     {0x26, 0x7a, 0x6e},
     {0x26, 0x7b, 0xfa},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1462,7 +1457,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_60[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_70[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	70	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x03},
     {0x26, 0x57, 0xed},
@@ -1482,7 +1477,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_70[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x0d},
     {0x26, 0x66, 0x55},
     {0x26, 0x67, 0x36},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	70	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x03},
     {0x26, 0x6b, 0xed},
@@ -1502,7 +1497,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_70[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x0d},
     {0x26, 0x7a, 0x55},
     {0x26, 0x7b, 0x36},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1525,7 +1520,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_70[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_80[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	80	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x05},
     {0x26, 0x57, 0x20},
@@ -1545,7 +1540,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_80[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x0f},
     {0x26, 0x66, 0x3a},
     {0x26, 0x67, 0xfe},
-    {0x26, 0x68, 0x00}, //	Biquad	-		BQ2	Left			-					Filter:	Low	Pass-Chebyshev		Frequency:	80	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x05},
     {0x26, 0x6b, 0x20},
@@ -1565,7 +1560,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_80[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x0f},
     {0x26, 0x7a, 0x3a},
     {0x26, 0x7b, 0xfe},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1588,7 +1583,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_80[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_90[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	90	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x06},
     {0x26, 0x57, 0x7c},
@@ -1608,7 +1603,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_90[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x11},
     {0x26, 0x66, 0x20},
     {0x26, 0x67, 0x52},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	90	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x06},
     {0x26, 0x6b, 0x7c},
@@ -1628,7 +1623,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_90[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x11},
     {0x26, 0x7a, 0x20},
     {0x26, 0x7b, 0x52},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1651,7 +1646,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_90[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_100[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	100	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x08},
     {0x26, 0x57, 0x00},
@@ -1671,7 +1666,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_100[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x13},
     {0x26, 0x66, 0x05},
     {0x26, 0x67, 0x31},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	100	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x08},
     {0x26, 0x6b, 0x00},
@@ -1691,7 +1686,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_100[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x13},
     {0x26, 0x7a, 0x05},
     {0x26, 0x7b, 0x31},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1714,7 +1709,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_100[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_110[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Left			-					Filter:	Low	Pass-Chebyshev		Frequency:	110	Hz		QVal:	0.71		Bandwidth:	1000
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x09},
     {0x26, 0x57, 0xad},
@@ -1734,7 +1729,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_110[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x14},
     {0x26, 0x66, 0xe9},
     {0x26, 0x67, 0x9c},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Left			-					Filter:	Low	Pass-Chebyshev		Frequency:	110	Hz		QVal:	0.71		Bandwidth:	1000
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x09},
     {0x26, 0x6b, 0xad},
@@ -1754,7 +1749,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_110[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x14},
     {0x26, 0x7a, 0xe9},
     {0x26, 0x7b, 0x9c},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1777,7 +1772,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_110[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_120[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //	Biquad	-		BQ1	Left			-					Filter:	Low	Pass-Chebyshev		Frequency:	120	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x0b},
     {0x26, 0x57, 0x82},
@@ -1797,7 +1792,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_120[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x16},
     {0x26, 0x66, 0xcd},
     {0x26, 0x67, 0x93},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	120	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x0b},
     {0x26, 0x6b, 0x82},
@@ -1817,7 +1812,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_120[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x16},
     {0x26, 0x7a, 0xcd},
     {0x26, 0x7b, 0x93},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1840,7 +1835,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_120[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_130[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //			Biquad	-		BQ1	Left			-					Filter:	Low	Pass-Chebyshev		Frequency:	130	Hz		QVal:	0.71		Bandwidth:	1000
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x0d},
     {0x26, 0x57, 0x80},
@@ -1860,7 +1855,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_130[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x18},
     {0x26, 0x66, 0xb1},
     {0x26, 0x67, 0x16},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	130	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x0d},
     {0x26, 0x6b, 0x80},
@@ -1880,7 +1875,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_130[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x18},
     {0x26, 0x7a, 0xb1},
     {0x26, 0x7b, 0x16},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1903,7 +1898,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_130[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_140[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	140	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x0f},
     {0x26, 0x57, 0xa6},
@@ -1923,7 +1918,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_140[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x1a},
     {0x26, 0x66, 0x94},
     {0x26, 0x67, 0x26},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	140	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x0f},
     {0x26, 0x6b, 0xa6},
@@ -1943,7 +1938,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_140[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x1a},
     {0x26, 0x7a, 0x94},
     {0x26, 0x7b, 0x26},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -1966,7 +1961,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_140[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_lf_150[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x00}, //		Biquad	-		BQ1	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	150	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x00},
     {0x26, 0x55, 0x00},
     {0x26, 0x56, 0x11},
     {0x26, 0x57, 0xf5},
@@ -1986,7 +1981,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_150[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x1c},
     {0x26, 0x66, 0x76},
     {0x26, 0x67, 0xc1},
-    {0x26, 0x68, 0x00}, //		Biquad	-		BQ2	Right			-					Filter:	Low	Pass-Chebyshev		Frequency:	150	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x00},
     {0x26, 0x69, 0x00},
     {0x26, 0x6a, 0x11},
     {0x26, 0x6b, 0xf5},
@@ -2006,7 +2001,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_150[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x1c},
     {0x26, 0x7a, 0x76},
     {0x26, 0x7b, 0xc1},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	All	Pass		Frequency:	1000	Hz		QVal:	0.71		Bandwidth:	1000	Hz
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0x00},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0x00},
@@ -2029,7 +2024,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_lf_150[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_60[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	60	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x89},
     {0x26, 0x56, 0xde},
     {0x26, 0x57, 0x6d},
@@ -2049,7 +2044,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_60[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x07},
     {0x26, 0x66, 0x8c},
     {0x26, 0x67, 0x4f},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	60	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x89},
     {0x26, 0x6a, 0xde},
     {0x26, 0x6b, 0x6d},
@@ -2069,7 +2064,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_60[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x07},
     {0x26, 0x7a, 0x8c},
     {0x26, 0x7b, 0x4f},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	200	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf8},
     {0x26, 0x7e, 0x2c},
     {0x26, 0x7f, 0x87},
@@ -2092,7 +2087,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_60[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_70[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Left			-					Filter:	High	Pass-Chebyshev		Frequency:	70	Hz		QVal:	0.5		Bandwidth:	1000
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x89},
     {0x26, 0x56, 0x46},
     {0x26, 0x57, 0x48},
@@ -2112,7 +2107,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_70[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x08},
     {0x26, 0x66, 0xcd},
     {0x26, 0x67, 0xaa},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Left			-					Filter:	High	Pass-Chebyshev		Frequency:	70	Hz		QVal:	0.5		Bandwidth:	1000
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x89},
     {0x26, 0x6a, 0x46},
     {0x26, 0x6b, 0x48},
@@ -2132,7 +2127,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_70[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x08},
     {0x26, 0x7a, 0xcd},
     {0x26, 0x7b, 0xaa},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Left			-					Filter:	High	Shelf		Frequency:	200	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf8},
     {0x26, 0x7e, 0x2c},
     {0x26, 0x7f, 0x87},
@@ -2155,7 +2150,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_70[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_80[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	80	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x88},
     {0x26, 0x56, 0xae},
     {0x26, 0x57, 0x29},
@@ -2175,7 +2170,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_80[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x0a},
     {0x26, 0x66, 0x0e},
     {0x26, 0x67, 0xd3},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	80	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x88},
     {0x26, 0x6a, 0xae},
     {0x26, 0x6b, 0x29},
@@ -2195,7 +2190,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_80[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x0a},
     {0x26, 0x7a, 0x0e},
     {0x26, 0x7b, 0xd3},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	200	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf8},
     {0x26, 0x7e, 0x2c},
     {0x26, 0x7f, 0x87},
@@ -2218,7 +2213,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_80[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_90[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	90	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x88},
     {0x26, 0x56, 0x16},
     {0x26, 0x57, 0x11},
@@ -2238,7 +2233,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_90[TAS58XX_EQ_PROFIL
     {0x26, 0x65, 0x0b},
     {0x26, 0x66, 0x4f},
     {0x26, 0x67, 0xca},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	90	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x88},
     {0x26, 0x6a, 0x16},
     {0x26, 0x6b, 0x11},
@@ -2258,7 +2253,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_90[TAS58XX_EQ_PROFIL
     {0x26, 0x79, 0x0b},
     {0x26, 0x7a, 0x4f},
     {0x26, 0x7b, 0xca},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	200	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf8},
     {0x26, 0x7e, 0x2c},
     {0x26, 0x7f, 0x87},
@@ -2281,7 +2276,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_90[TAS58XX_EQ_PROFIL
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_100[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	100	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x87},
     {0x26, 0x56, 0x7d},
     {0x26, 0x57, 0xfe},
@@ -2301,7 +2296,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_100[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x0c},
     {0x26, 0x66, 0x90},
     {0x26, 0x67, 0x8e},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	100	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x87},
     {0x26, 0x6a, 0x7d},
     {0x26, 0x6b, 0xfe},
@@ -2321,7 +2316,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_100[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x0c},
     {0x26, 0x7a, 0x90},
     {0x26, 0x7b, 0x8e},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	200	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf8},
     {0x26, 0x7e, 0x2c},
     {0x26, 0x7f, 0x87},
@@ -2344,7 +2339,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_100[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_110[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	110	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x86},
     {0x26, 0x56, 0xe5},
     {0x26, 0x57, 0xf2},
@@ -2364,7 +2359,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_110[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x0d},
     {0x26, 0x66, 0xd1},
     {0x26, 0x67, 0x1f},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	110	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x86},
     {0x26, 0x6a, 0xe5},
     {0x26, 0x6b, 0xf2},
@@ -2384,7 +2379,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_110[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x0d},
     {0x26, 0x7a, 0xd1},
     {0x26, 0x7b, 0x1f},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	220	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf8},
     {0x26, 0x7e, 0x00},
     {0x26, 0x7f, 0xd4},
@@ -2407,7 +2402,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_110[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_120[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	120	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x86},
     {0x26, 0x56, 0x4d},
     {0x26, 0x57, 0xeb},
@@ -2427,7 +2422,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_120[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x0f},
     {0x26, 0x66, 0x11},
     {0x26, 0x67, 0x7e},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	120	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x86},
     {0x26, 0x6a, 0x4d},
     {0x26, 0x6b, 0xeb},
@@ -2447,7 +2442,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_120[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x0f},
     {0x26, 0x7a, 0x11},
     {0x26, 0x7b, 0x7e},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	240	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf7},
     {0x26, 0x7e, 0xd5},
     {0x26, 0x7f, 0x31},
@@ -2470,7 +2465,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_120[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_130[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	130	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x85},
     {0x26, 0x56, 0xb5},
     {0x26, 0x57, 0xeb},
@@ -2490,7 +2485,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_130[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x10},
     {0x26, 0x66, 0x51},
     {0x26, 0x67, 0xaa},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	130	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x85},
     {0x26, 0x6a, 0xb5},
     {0x26, 0x6b, 0xeb},
@@ -2510,7 +2505,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_130[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x10},
     {0x26, 0x7a, 0x51},
     {0x26, 0x7b, 0xaa},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	260	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf7},
     {0x26, 0x7e, 0xa9},
     {0x26, 0x7f, 0x9d},
@@ -2533,7 +2528,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_130[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_140[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	140	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x85},
     {0x26, 0x56, 0x1d},
     {0x26, 0x57, 0xf1},
@@ -2553,7 +2548,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_140[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x11},
     {0x26, 0x66, 0x91},
     {0x26, 0x67, 0xa4},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	140	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x85},
     {0x26, 0x6a, 0x1d},
     {0x26, 0x6b, 0xf1},
@@ -2573,7 +2568,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_140[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x11},
     {0x26, 0x7a, 0x91},
     {0x26, 0x7b, 0xa4},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	280	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf7},
     {0x26, 0x7e, 0x7e},
     {0x26, 0x7f, 0x18},
@@ -2596,7 +2591,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_140[TAS58XX_EQ_PROFI
 };
 
 static const reg_sequence_eq tas5805m_eq_registers_right_hf_150[TAS58XX_EQ_PROFILE_REG_PER_STEP] = {
-    {0x26, 0x54, 0x07}, //		Biquad	-		BQ1	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	150	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x54, 0x07},
     {0x26, 0x55, 0x84},
     {0x26, 0x56, 0x85},
     {0x26, 0x57, 0xfd},
@@ -2616,7 +2611,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_150[TAS58XX_EQ_PROFI
     {0x26, 0x65, 0x12},
     {0x26, 0x66, 0xd1},
     {0x26, 0x67, 0x6b},
-    {0x26, 0x68, 0x07}, //		Biquad	-		BQ2	Right			-					Filter:	High	Pass-Chebyshev		Frequency:	150	Hz		QVal:	0.5		Bandwidth:	1000	Hz
+    {0x26, 0x68, 0x07},
     {0x26, 0x69, 0x84},
     {0x26, 0x6a, 0x85},
     {0x26, 0x6b, 0xfd},
@@ -2636,7 +2631,7 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_150[TAS58XX_EQ_PROFI
     {0x26, 0x79, 0x12},
     {0x26, 0x7a, 0xd1},
     {0x26, 0x7b, 0x6b},
-    {0x26, 0x7c, 0x08}, //		Biquad	-		BQ3	Right			-					Filter:	High	Shelf		Frequency:	300	Hz		Gain:	1dB		QVal:	0.5
+    {0x26, 0x7c, 0x08},
     {0x26, 0x7d, 0xf7},
     {0x26, 0x7e, 0x52},
     {0x26, 0x7f, 0xa3},
@@ -2658,35 +2653,32 @@ static const reg_sequence_eq tas5805m_eq_registers_right_hf_150[TAS58XX_EQ_PROFI
     {0x27, 0x17, 0xca},
 };
 
-/* Crossover frequency coefficient lookup (maps crossover_freq index to low-pass filter coefficients)
- * Index 0: OFF (flat/bypass), Index 1-10: 60Hz-150Hz low-pass filters for subwoofer
- */
 static const reg_sequence_eq *tas5805m_crossover_lf_registers[] = {
-    tas5805m_eq_registers_left_flat,    /* 0: OFF */
-    tas5805m_eq_registers_left_lf_60,   /* 1: 60 Hz */
-    tas5805m_eq_registers_left_lf_70,   /* 2: 70 Hz */
-    tas5805m_eq_registers_left_lf_80,   /* 3: 80 Hz */
-    tas5805m_eq_registers_left_lf_90,   /* 4: 90 Hz */
-    tas5805m_eq_registers_left_lf_100,  /* 5: 100 Hz */
-    tas5805m_eq_registers_left_lf_110,  /* 6: 110 Hz */
-    tas5805m_eq_registers_left_lf_120,  /* 7: 120 Hz */
-    tas5805m_eq_registers_left_lf_130,  /* 8: 130 Hz */
-    tas5805m_eq_registers_left_lf_140,  /* 9: 140 Hz */
-    tas5805m_eq_registers_left_lf_150,  /* 10: 150 Hz */
+    tas5805m_eq_registers_left_flat,
+    tas5805m_eq_registers_left_lf_60,
+    tas5805m_eq_registers_left_lf_70,
+    tas5805m_eq_registers_left_lf_80,
+    tas5805m_eq_registers_left_lf_90,
+    tas5805m_eq_registers_left_lf_100,
+    tas5805m_eq_registers_left_lf_110,
+    tas5805m_eq_registers_left_lf_120,
+    tas5805m_eq_registers_left_lf_130,
+    tas5805m_eq_registers_left_lf_140,
+    tas5805m_eq_registers_left_lf_150,
 };
 
 static const reg_sequence_eq *tas5805m_crossover_hf_registers[] = {
-    tas5805m_eq_registers_right_flat,    /* 0: OFF */
-    tas5805m_eq_registers_right_hf_60,   /* 1: 60 Hz */
-    tas5805m_eq_registers_right_hf_70,   /* 2: 70 Hz */
-    tas5805m_eq_registers_right_hf_80,   /* 3: 80 Hz */
-    tas5805m_eq_registers_right_hf_90,   /* 4: 90 Hz */
-    tas5805m_eq_registers_right_hf_100,  /* 5: 100 Hz */
-    tas5805m_eq_registers_right_hf_110,  /* 6: 110 Hz */
-    tas5805m_eq_registers_right_hf_120,  /* 7: 120 Hz */
-    tas5805m_eq_registers_right_hf_130,  /* 8: 130 Hz */
-    tas5805m_eq_registers_right_hf_140,  /* 9: 140 Hz */
-    tas5805m_eq_registers_right_hf_150,  /* 10: 150 Hz */
+    tas5805m_eq_registers_right_flat,
+    tas5805m_eq_registers_right_hf_60,
+    tas5805m_eq_registers_right_hf_70,
+    tas5805m_eq_registers_right_hf_80,
+    tas5805m_eq_registers_right_hf_90,
+    tas5805m_eq_registers_right_hf_100,
+    tas5805m_eq_registers_right_hf_110,
+    tas5805m_eq_registers_right_hf_120,
+    tas5805m_eq_registers_right_hf_130,
+    tas5805m_eq_registers_right_hf_140,
+    tas5805m_eq_registers_right_hf_150,
 };
 
 #ifdef __cplusplus

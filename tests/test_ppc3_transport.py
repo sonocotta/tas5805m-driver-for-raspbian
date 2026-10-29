@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""Exercise the driver's real PPC3 write functions against a fake regmap.
-
-Run with ``python3 tests/test_ppc3_transport.py``. A C compiler is required;
-set CC to its executable name or path if it is not named gcc, clang or zig.
-No hardware is accessed and all build files are temporary.
-"""
 
 import json
 import os
