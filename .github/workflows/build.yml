@@ -43,6 +43,9 @@ jobs:
       - name: Test PPC3 coefficient writes
         run: python3 tests/test_ppc3_transport.py
 
+      - name: Test PPC3 ALSA restore cache
+        run: python3 tests/test_ppc3_restore.py
+
       - name: Locate installed generic kernel headers
         id: kernel
         run: |
