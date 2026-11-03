@@ -64,6 +64,27 @@ A safe transport check for a five-coefficient biquad is to read all five values,
 write the exact same five values back, and read again. Do not invent raw
 coefficients merely to test the interface.
 
+## ALSA restore regression test (still needs a real TAS5825M)
+
+Do this with the output muted and speakers disconnected or with a properly
+protected low-power test load. Use a matching PF3 configuration throughout.
+
+1. Start I²S playback once so the PPC3 image is initialised. Read the chosen
+   PPC3 control values, then run `sudo alsactl store` to save the current
+   mixer state.
+2. Reboot. Run `sudo alsactl restore` **before** starting playback and check
+   that it reports no failed PPC3 writes. An `amixer cget` on a restored
+   control should return the cached values before DSP initialisation.
+3. Start playback at a safe level. Read the same controls back and check that
+   every restored coefficient matches the saved value. Confirm unmodified
+   coefficients still match the PPC3 export.
+4. Repeat with a playback stop/start cycle. To verify the failure path,
+   separately inject an I²C failure in a controlled development setup; the
+   amplifier must not enter PLAY if coefficient replay fails.
+
+The code and fake-hardware cache tests do **not** establish that this
+end-to-end sequence works on actual TAS5825M hardware.
+
 ## Hardware validation already performed
 
 The development hardware verified the PF3 Book 0x8c / Book 0xaa coefficient
