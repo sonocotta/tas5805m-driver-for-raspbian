@@ -1972,6 +1972,154 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 	INIT_WORK(&tas58xx->work, do_work);
 	mutex_init(&tas58xx->lock);
 	
+	
+	/* Build component driver dynamically based on EQ mode */
+	struct snd_soc_component_driver *soc_codec_dev;
+	struct snd_kcontrol_new *controls;
+	int num_controls;
+	const struct snd_kcontrol_new *eq_controls = NULL;
+	size_t eq_controls_size = 0;
+
+	soc_codec_dev = devm_kzalloc(dev, sizeof(*soc_codec_dev), GFP_KERNEL);
+	if (!soc_codec_dev) {
+		gpiod_set_value(tas58xx->gpio_pdn_n, 0);
+		regulator_disable(tas58xx->pvdd);
+		return -ENOMEM;
+	}
+
+	/* A loaded text DSP config overrides EQ, crossover, mixer routing
+	 * and per-channel volume registers directly, so those ALSA controls
+	 * would be misleading (changes made through them would either be
+	 * silently clobbered on the next config load or fight with values
+	 * the config already set) and are left unregistered in that case.
+	 */
+	bool expose_eq_mixer_controls = !tas58xx->dsp_cfg_loaded;
+
+	/* Determine which EQ controls to add based on mode */
+	if (expose_eq_mixer_controls) {
+		switch (tas58xx->eq_mode_type) {
+		case TAS58XX_EQ_MODE_15BAND:
+			eq_controls = tas58xx_snd_controls_eq_15band;
+			eq_controls_size = sizeof(tas58xx_snd_controls_eq_15band);
+			break;
+		case TAS58XX_EQ_MODE_LF_CROSSOVER:
+		case TAS58XX_EQ_MODE_HF_CROSSOVER:
+			eq_controls = tas58xx_snd_controls_crossover;
+			eq_controls_size = sizeof(tas58xx_snd_controls_crossover);
+			break;
+		case TAS58XX_EQ_MODE_OFF:
+		default:
+			eq_controls = NULL;
+			eq_controls_size = 0;
+			break;
+		}
+	} else {
+		eq_controls = NULL;
+		eq_controls_size = 0;
+	}
+
+	/* Calculate total number of controls */
+	num_controls = ARRAY_SIZE(tas58xx_snd_controls_base);
+	if (tas58xx->fault_monitor)
+		num_controls += ARRAY_SIZE(tas58xx_snd_controls_faults);
+	if (expose_eq_mixer_controls) {
+		if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF)
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
+		if (!tas58xx->mixer_mode_from_dt)
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_mixer);
+		/* Add channel volume controls (mono for bridge mode, stereo otherwise) */
+		if (tas58xx->bridge_mode)
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_mono);
+		else
+			num_controls += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_stereo);
+	}
+	if (eq_controls)
+		num_controls += eq_controls_size / sizeof(struct snd_kcontrol_new);
+
+	/* Allocate and build control array */
+	controls = devm_kmalloc(dev, num_controls * sizeof(struct snd_kcontrol_new), GFP_KERNEL);
+	if (!controls) {
+		gpiod_set_value(tas58xx->gpio_pdn_n, 0);
+		regulator_disable(tas58xx->pvdd);
+		return -ENOMEM;
+	}
+
+	/* Copy base controls */
+	memcpy(controls, tas58xx_snd_controls_base, sizeof(tas58xx_snd_controls_base));
+	int offset = ARRAY_SIZE(tas58xx_snd_controls_base);
+
+	/* Add fault monitoring controls if enabled */
+	if (tas58xx->fault_monitor) {
+		memcpy(&controls[offset], tas58xx_snd_controls_faults, sizeof(tas58xx_snd_controls_faults));
+		offset += ARRAY_SIZE(tas58xx_snd_controls_faults);
+	}
+
+	if (expose_eq_mixer_controls) {
+		/* Add Equalizer toggle control if EQ mode is not OFF */
+		if (tas58xx->eq_mode_type != TAS58XX_EQ_MODE_OFF) {
+			memcpy(&controls[offset], tas58xx_snd_controls_eq_toggle, sizeof(tas58xx_snd_controls_eq_toggle));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_eq_toggle);
+		}
+
+		/* Add mixer controls if not controlled by device tree */
+		if (!tas58xx->mixer_mode_from_dt) {
+			memcpy(&controls[offset], tas58xx_snd_controls_mixer, sizeof(tas58xx_snd_controls_mixer));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_mixer);
+		}
+
+		/* Add per-channel volume controls (mono for bridge mode, stereo otherwise) */
+		if (tas58xx->bridge_mode) {
+			memcpy(&controls[offset], tas58xx_snd_controls_channel_volume_mono, sizeof(tas58xx_snd_controls_channel_volume_mono));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_mono);
+		} else {
+			memcpy(&controls[offset], tas58xx_snd_controls_channel_volume_stereo, sizeof(tas58xx_snd_controls_channel_volume_stereo));
+			offset += ARRAY_SIZE(tas58xx_snd_controls_channel_volume_stereo);
+		}
+	}
+
+	/* Add EQ or crossover controls if applicable */
+	if (eq_controls) {
+		memcpy(&controls[offset], eq_controls, eq_controls_size);
+	}
+
+	/* Log control registration */
+	if (tas58xx->dsp_cfg_loaded)
+		dev_info(dev, "%s: Registered %d controls (EQ/mixer/channel volume controls hidden: DSP config loaded)\n",
+			 __func__, num_controls);
+	else if (tas58xx->mixer_mode_from_dt && eq_controls)
+		dev_dbg(dev, "%s: Registered %d controls (mixer from DT, with %s)\n", 
+			__func__, num_controls, tas58xx->eq_mode_type == TAS58XX_EQ_MODE_15BAND ? "15-band EQ" : "crossover");
+	else if (tas58xx->mixer_mode_from_dt)
+		dev_dbg(dev, "%s: Registered %d controls (mixer from DT)\n", __func__, num_controls);
+	else if (eq_controls)
+		dev_dbg(dev, "%s: Registered %d controls (with %s)\n", 
+			__func__, num_controls, tas58xx->eq_mode_type == TAS58XX_EQ_MODE_15BAND ? "15-band EQ" : "crossover");
+	else
+		dev_dbg(dev, "%s: Registered %d controls\n", __func__, num_controls);
+
+	/* Build component driver structure */
+	soc_codec_dev->controls = controls;
+	soc_codec_dev->num_controls = num_controls;
+	soc_codec_dev->dapm_widgets = tas58xx_dapm_widgets;
+	soc_codec_dev->num_dapm_widgets = ARRAY_SIZE(tas58xx_dapm_widgets);
+	soc_codec_dev->dapm_routes = tas58xx_audio_map;
+	soc_codec_dev->num_dapm_routes = ARRAY_SIZE(tas58xx_audio_map);
+	soc_codec_dev->use_pmdown_time = 1;
+	soc_codec_dev->endianness = 1;
+
+	/* Don't register through devm. We need to be able to unregister
+	 * the component prior to deasserting PDN#
+	 */
+	ret = snd_soc_register_component(dev, soc_codec_dev,
+					 &tas58xx_dai, 1);
+	if (ret < 0) {
+		dev_err(dev, "%s: unable to register codec: %d\n", 
+			__func__, ret);
+		gpiod_set_value(tas58xx->gpio_pdn_n, 0);
+		regulator_disable(tas58xx->pvdd);
+		return ret;
+	}
+
 	/* Add to device list for trigger synchronization */
 	{
 		unsigned long flags;
