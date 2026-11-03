@@ -30,6 +30,7 @@
 #include <linux/atomic.h>
 #include <linux/workqueue.h>
 #include <linux/spinlock.h>
+#include <linux/bitmap.h>
 
 #include <sound/soc.h>
 #include <sound/pcm.h>
@@ -149,6 +150,8 @@ struct tas58xx_cfg_op {
 	u16	delay_ms;
 };
 
+struct tas58xx_ppc3_restore;
+
 struct tas58xx_priv {
 	struct i2c_client		*i2c;
 	struct regulator		*pvdd;
@@ -158,6 +161,7 @@ struct tas58xx_priv {
 	int						dsp_cfg_num_ops;
 	bool					dsp_cfg_loaded;  /* True once a non-empty text DSP config was applied */
 	bool					dsp_profile_drc3agl;
+	struct tas58xx_ppc3_restore *ppc3_restore;
 
 	struct regmap			*regmap;
 	enum tas58xx_variant	variant;
@@ -1152,6 +1156,14 @@ static int tas58xx_mixer_mode_put(struct snd_kcontrol *kcontrol,
 #define TAS5825M_PPC3_COEFFS_PER_PAGE   30
 #define TAS5825M_PPC3_FIRST_PAGE        1
 #define TAS5825M_PPC3_FIRST_REG         0x08
+#define TAS5825M_PPC3_TOTAL_COEFFS      4000
+#define TAS5825M_PPC3_MAX_CTRL_VALUES   10
+
+/* Only ALSA-supplied values are valid; never replay uninitialised coefficients. */
+struct tas58xx_ppc3_restore {
+	s32 values[TAS5825M_PPC3_TOTAL_COEFFS];
+	DECLARE_BITMAP(valid, TAS5825M_PPC3_TOTAL_COEFFS);
+};
 
 struct tas58xx_profile_coeff_ctrl {
 	unsigned int start_coeff;
@@ -1298,6 +1310,41 @@ static int tas5825m_ppc3_write_biquad(struct tas58xx_priv *tas58xx,
 	return 0;
 }
 
+static bool tas58xx_ppc3_cache_has_all(const struct tas58xx_priv *tas58xx,
+					const struct tas58xx_profile_coeff_ctrl *ctrl)
+{
+	unsigned int i;
+	const struct tas58xx_ppc3_restore *cache = tas58xx->ppc3_restore;
+
+	if (!cache)
+		return false;
+	for (i = 0; i < ctrl->count; i++)
+		if (!test_bit(ctrl->start_coeff + i, cache->valid))
+			return false;
+	return true;
+}
+
+/* Caller holds priv->lock; return true if the requested state changed. */
+static bool tas58xx_ppc3_cache_save(struct tas58xx_priv *tas58xx,
+				 const struct tas58xx_profile_coeff_ctrl *ctrl,
+				 const s32 *values)
+{
+	struct tas58xx_ppc3_restore *cache = tas58xx->ppc3_restore;
+	bool changed = false;
+	unsigned int i;
+
+	for (i = 0; i < ctrl->count; i++) {
+		unsigned int coeff = ctrl->start_coeff + i;
+
+		if (!test_bit(coeff, cache->valid) ||
+		    cache->values[coeff] != values[i])
+			changed = true;
+		cache->values[coeff] = values[i];
+		set_bit(coeff, cache->valid);
+	}
+	return changed;
+}
+
 static int tas58xx_profile_coeff_info(struct snd_kcontrol *kcontrol,
 				      struct snd_ctl_elem_info *uinfo)
 {
@@ -1327,7 +1374,14 @@ static int tas58xx_profile_coeff_get(struct snd_kcontrol *kcontrol,
 		goto out;
 	}
 	if (!tas58xx->dsp_initialized) {
-		ret = -EAGAIN;
+		/* alsactl restore may have run before I2S started. */
+		if (!tas58xx_ppc3_cache_has_all(tas58xx, ctrl)) {
+			ret = -EAGAIN;
+			goto out;
+		}
+		for (i = 0; i < ctrl->count; i++)
+			ucontrol->value.integer.value[i] =
+				tas58xx->ppc3_restore->values[ctrl->start_coeff + i];
 		goto out;
 	}
 
@@ -1355,6 +1409,7 @@ static int tas58xx_profile_coeff_put(struct snd_kcontrol *kcontrol,
 	struct tas58xx_priv *tas58xx = snd_soc_component_get_drvdata(component);
 	const struct tas58xx_profile_coeff_ctrl *ctrl =
 		(const struct tas58xx_profile_coeff_ctrl *)kcontrol->private_value;
+	s32 requested[TAS5825M_PPC3_MAX_CTRL_VALUES];
 	unsigned int i;
 	int ret = 0;
 	bool changed = false;
@@ -1364,64 +1419,65 @@ static int tas58xx_profile_coeff_put(struct snd_kcontrol *kcontrol,
 		ret = -EACCES;
 		goto out;
 	}
+	if (!tas58xx->ppc3_restore) {
+		ret = -ENOMEM;
+		goto out;
+	}
+	if (ctrl->count > ARRAY_SIZE(requested) ||
+	    ctrl->start_coeff >= TAS5825M_PPC3_TOTAL_COEFFS ||
+	    ctrl->count > TAS5825M_PPC3_TOTAL_COEFFS - ctrl->start_coeff) {
+		ret = -EINVAL;
+		goto out;
+	}
+
+	/* Validate the entire ALSA write before touching the cache or hardware. */
+	for (i = 0; i < ctrl->count; i++) {
+		long value = ucontrol->value.integer.value[i];
+
+		if (value < (-2147483647L - 1) || value > 2147483647L) {
+			ret = -EINVAL;
+			goto out;
+		}
+		requested[i] = (s32)value;
+	}
+
 	if (!tas58xx->dsp_initialized) {
-		ret = -EAGAIN;
+		/* No I2S clock yet: accept the complete request for replay after
+		 * the PPC3 firmware is loaded, before the amplifier enters PLAY.
+		 */
+		changed = tas58xx_ppc3_cache_save(tas58xx, ctrl, requested);
 		goto out;
 	}
 
 	if (ctrl->count == 5 && ctrl->start_coeff >= 2000) {
-		s32 old_values[5];
-		s32 new_values[5];
-
 		for (i = 0; i < 5; i++) {
-			long requested = ucontrol->value.integer.value[i];
+			s32 old_value;
 
-			if (requested < (-2147483647L - 1) ||
-			    requested > 2147483647L) {
-				ret = -EINVAL;
-				goto restore;
-			}
-			new_values[i] = (s32)requested;
 			ret = tas5825m_ppc3_read_coeff(tas58xx,
 						       ctrl->start_coeff + i,
-						       &old_values[i]);
+						       &old_value);
 			if (ret)
 				goto restore;
-			if (old_values[i] != new_values[i])
+			if (old_value != requested[i])
 				changed = true;
 		}
-
-		if (changed) {
+		if (changed)
 			ret = tas5825m_ppc3_write_biquad(tas58xx,
-						     ctrl->start_coeff,
-						     new_values);
-			if (ret)
-				goto restore;
-		}
+							 ctrl->start_coeff, requested);
 		goto restore;
 	}
 
 	for (i = 0; i < ctrl->count; i++) {
-		long requested = ucontrol->value.integer.value[i];
-		s32 old_value = 0;
-		s32 new_value;
-
-		if (requested < (-2147483647L - 1) ||
-		    requested > 2147483647L) {
-			ret = -EINVAL;
-			goto restore;
-		}
-		new_value = (s32)requested;
+		s32 old_value;
 
 		ret = tas5825m_ppc3_read_coeff(tas58xx,
-					       ctrl->start_coeff + i, &old_value);
+						   ctrl->start_coeff + i, &old_value);
 		if (ret)
 			goto restore;
-		if (old_value == new_value)
+		if (old_value == requested[i])
 			continue;
-
 		ret = tas5825m_ppc3_write_coeff(tas58xx,
-						ctrl->start_coeff + i, new_value);
+						    ctrl->start_coeff + i, requested[i]);
 		if (ret)
 			goto restore;
 		changed = true;
@@ -1429,6 +1485,9 @@ static int tas58xx_profile_coeff_put(struct snd_kcontrol *kcontrol,
 
 restore:
 	ret = tas58xx_select_page0(tas58xx, ret);
+	/* Keep the last successful full ALSA request for any DSP reinit. */
+	if (!ret)
+		tas58xx_ppc3_cache_save(tas58xx, ctrl, requested);
 out:
 	mutex_unlock(&tas58xx->lock);
 	if (ret)
@@ -1634,6 +1693,55 @@ static const struct snd_kcontrol_new tas58xx_snd_controls_drc3agl[] = {
 	TAS58XX_PROFILE_METER_CTRL("PPC3 Level Meter Left Raw", ppc3_meter_left),
 	TAS58XX_PROFILE_METER_CTRL("PPC3 Level Meter Right Raw", ppc3_meter_right),
 };
+
+/* Reapply complete, explicitly saved ALSA controls after the PPC3 image,
+ * while the outputs are still in Hi-Z. Called with priv->lock held.
+ */
+static int tas58xx_ppc3_replay_cached(struct tas58xx_priv *tas58xx)
+{
+	const struct tas58xx_ppc3_restore *cache = tas58xx->ppc3_restore;
+	unsigned int control, i;
+	int ret = 0;
+
+	if (!cache)
+		return 0;
+
+	for (control = 0; control < ARRAY_SIZE(tas58xx_snd_controls_drc3agl);
+	     control++) {
+		const struct snd_kcontrol_new *kctl =
+			&tas58xx_snd_controls_drc3agl[control];
+		const struct tas58xx_profile_coeff_ctrl *ctrl;
+		s32 values[TAS5825M_PPC3_MAX_CTRL_VALUES];
+
+		if (kctl->put != tas58xx_profile_coeff_put)
+			continue; /* meters are read-only */
+		ctrl = (const struct tas58xx_profile_coeff_ctrl *)
+			kctl->private_value;
+		if (!tas58xx_ppc3_cache_has_all(tas58xx, ctrl))
+			continue;
+		if (ctrl->count > ARRAY_SIZE(values)) {
+			ret = -EINVAL;
+			break;
+		}
+		for (i = 0; i < ctrl->count; i++)
+			values[i] = cache->values[ctrl->start_coeff + i];
+
+		if (ctrl->count == 5 && ctrl->start_coeff >= 2000) {
+			ret = tas5825m_ppc3_write_biquad(tas58xx,
+							 ctrl->start_coeff, values);
+		} else {
+			for (i = 0; i < ctrl->count; i++) {
+				ret = tas5825m_ppc3_write_coeff(tas58xx,
+						ctrl->start_coeff + i, values[i]);
+				if (ret)
+					break;
+			}
+		}
+		if (ret)
+			break;
+	}
+	return tas58xx_select_page0(tas58xx, ret);
+}
 
 static int tas58xx_pvdd_info(struct snd_kcontrol *kcontrol,
 			    struct snd_ctl_elem_info *uinfo)
@@ -2099,6 +2207,21 @@ static void do_work(struct work_struct *work)
 				 tas58xx->bridge_mode ? "Bridge/PBTL" : "Normal/Stereo",
 				 tas58xx->switch_freq);
 		
+		/* Restore ALSA values only after firmware load and before PLAY.
+		 * If an I2C write fails, leave the amp in Hi-Z and retry on
+		 * the next playback trigger instead of enabling partial DSP state.
+		 */
+		if (tas58xx->dsp_profile_drc3agl) {
+			int restore_ret = tas58xx_ppc3_replay_cached(tas58xx);
+
+			if (restore_ret) {
+				dev_err(&tas58xx->i2c->dev,
+					"%s: PPC3 coefficient restore failed: %d\n",
+					__func__, restore_ret);
+				mutex_unlock(&tas58xx->lock);
+				return;
+			}
+		}
 		tas58xx->dsp_initialized = true;
 	} else {
 		dev_dbg(&tas58xx->i2c->dev, "%s: DSP already initialized, skipping preboot config\n", __func__);
@@ -2314,6 +2437,14 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 		/* No config provided: initialize empty configset */
 		tas58xx->dsp_cfg_num_ops = 0;
 		tas58xx->dsp_cfg_ops = NULL;
+	}
+
+	/* Allocate a per-device cache only for the known PF3 layout. */
+	if (tas58xx->dsp_profile_drc3agl) {
+		tas58xx->ppc3_restore =
+			devm_kzalloc(dev, sizeof(*tas58xx->ppc3_restore), GFP_KERNEL);
+		if (!tas58xx->ppc3_restore)
+			return -ENOMEM;
 	}
 
 	/* Do the first part of the power-on here, while we can expect
