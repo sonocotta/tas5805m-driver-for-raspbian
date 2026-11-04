@@ -29,6 +29,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/atomic.h>
 #include <linux/workqueue.h>
+#include <linux/spinlock.h>
 
 #include <sound/soc.h>
 #include <sound/pcm.h>
@@ -189,7 +190,7 @@ struct tas58xx_priv {
 
 /* Global list of all TAS58XX devices and lock */
 static LIST_HEAD(tas58xx_device_list);
-static DEFINE_MUTEX(tas58xx_list_mutex);
+static DEFINE_SPINLOCK(tas58xx_list_lock);
 
 static void tas58xx_decode_faults(struct device *dev, unsigned int chan,
 				   unsigned int global1, unsigned int global2,
@@ -1289,16 +1290,128 @@ static void send_cfg_ops(struct regmap *rm,
 	}
 }
 
+/* Return the next non-empty whitespace-delimited token. */
+static char *tas58xx_cfg_next_token(char **cursor)
+{
+	char *token;
+
+	while ((token = strsep(cursor, " \t")) != NULL)
+		if (*token)
+			return token;
+
+	return NULL;
+}
+
+/* PPC3 exports may use 7-bit or 8-bit write addresses. */
+static bool tas58xx_cfg_addr_matches(unsigned int addr, u8 i2c_addr)
+{
+	if (addr == i2c_addr)
+		return true;
+
+	return addr <= 0xff && !(addr & 1) && (addr >> 1) == i2c_addr;
+}
+
+static void tas58xx_parse_config_line(struct device *dev, u8 i2c_addr,
+				      char *line, struct tas58xx_cfg_op *ops,
+				      size_t capacity, size_t *count,
+				      bool warn)
+{
+	char *cursor = line;
+	char *token;
+	unsigned int addr, reg, val, delay_ms;
+	size_t start_count = *count;
+	size_t data_index = 0;
+
+	token = tas58xx_cfg_next_token(&cursor);
+	if (!token)
+		return;
+
+	if ((token[0] == 'w' || token[0] == 'W') && !token[1]) {
+		token = tas58xx_cfg_next_token(&cursor);
+		if (!token || kstrtouint(token, 16, &addr))
+			goto malformed_write;
+
+		token = tas58xx_cfg_next_token(&cursor);
+		if (!token || kstrtouint(token, 16, &reg) || reg > 0xff)
+			goto malformed_write;
+
+		if (!tas58xx_cfg_addr_matches(addr, i2c_addr))
+			return;
+
+		while ((token = tas58xx_cfg_next_token(&cursor)) != NULL) {
+			if (kstrtouint(token, 16, &val) || val > 0xff ||
+			    reg + data_index > 0xff)
+				goto malformed_write;
+
+			if (ops) {
+				if (*count >= capacity)
+					goto overflow;
+				ops[*count].type = TAS58XX_CFG_OP_WRITE;
+				ops[*count].reg = reg + data_index;
+				ops[*count].val = val;
+			}
+			(*count)++;
+			data_index++;
+		}
+
+		if (!data_index)
+			goto malformed_write;
+		return;
+	}
+
+	if ((token[0] == 'd' || token[0] == 'D') && !token[1]) {
+		token = tas58xx_cfg_next_token(&cursor);
+		if (!token || kstrtouint(token, 10, &delay_ms) ||
+		    delay_ms > 0xffff)
+			goto malformed_delay;
+
+		if (ops) {
+			if (*count >= capacity)
+				goto overflow;
+			ops[*count].type = TAS58XX_CFG_OP_DELAY;
+			ops[*count].delay_ms = delay_ms;
+		}
+		(*count)++;
+		return;
+	}
+
+	if (warn)
+		dev_warn(dev, "%s: unrecognized line, skipping: %s\n",
+			 __func__, line);
+	return;
+
+malformed_write:
+	*count = start_count;
+	if (warn)
+		dev_warn(dev, "%s: malformed write line, skipping: %s\n",
+			 __func__, line);
+	return;
+
+malformed_delay:
+	*count = start_count;
+	if (warn)
+		dev_warn(dev, "%s: malformed delay line, skipping: %s\n",
+			 __func__, line);
+	return;
+
+overflow:
+	*count = start_count;
+	if (warn)
+		dev_warn(dev, "%s: parser capacity exceeded, skipping: %s\n",
+			 __func__, line);
+}
+
 /* Parse a PPC3 text register-dump export into a sequence of write/delay
  * operations. Each line is either:
- *   w <i2c_addr_hex> <reg_hex> <val_hex>  - a register write
- *   d <delay_ms>                          - a delay
+ *   w <i2c_addr_hex> <reg_hex> <val_hex> [val_hex ...] - register writes
+ *   d <delay_ms>                                      - a delay
  * with optional trailing "# comment" text and blank/comment-only lines
  * ignored. Since a single export may contain configuration for several
  * DACs sharing the file but sitting at different I2C addresses, write
  * lines whose address does not match `i2c_addr` are silently dropped.
+ * Multiple values on a write line are expanded into sequential writes.
  *
- * On success, *out_ops is allocated with devm_kzalloc() against `dev`
+ * On success, *out_ops is allocated with devm_kcalloc() against `dev`
  * and *out_num_ops holds the number of matching operations (which may
  * be zero if the file contains nothing for this device's address).
  */
@@ -1307,66 +1420,51 @@ static int tas58xx_parse_text_config(struct device *dev, u8 i2c_addr,
 				      struct tas58xx_cfg_op **out_ops,
 				      int *out_num_ops)
 {
-	struct tas58xx_cfg_op *ops;
+	struct tas58xx_cfg_op *ops = NULL;
 	char *buf, *p, *line;
-	size_t i, capacity = 1;
-	int count = 0;
+	size_t capacity = 0;
+	size_t count = 0;
+	int pass;
 
-	for (i = 0; i < text_len; i++)
-		if (text[i] == '\n')
-			capacity++;
+	for (pass = 0; pass < 2; pass++) {
+		buf = kmemdup_nul(text, text_len, GFP_KERNEL);
+		if (!buf)
+			return -ENOMEM;
 
-	buf = kmemdup_nul(text, text_len, GFP_KERNEL);
-	if (!buf)
-		return -ENOMEM;
-
-	ops = devm_kzalloc(dev, capacity * sizeof(*ops), GFP_KERNEL);
-	if (!ops) {
-		kfree(buf);
-		return -ENOMEM;
-	}
-
-	p = buf;
-	while ((line = strsep(&p, "\r\n")) != NULL) {
-		char *comment = strchr(line, '#');
-		unsigned int addr, reg, val, delay_ms;
-
-		if (comment)
-			*comment = '\0';
-		line = strim(line);
-		if (!*line)
-			continue;
-
-		if (line[0] == 'w' || line[0] == 'W') {
-			if (sscanf(line, "%*c %x %x %x", &addr, &reg, &val) != 3) {
-				dev_warn(dev, "%s: malformed write line, skipping: %s\n",
-					 __func__, line);
-				continue;
-			}
-			if (addr != i2c_addr)
-				continue;
-
-			ops[count].type = TAS58XX_CFG_OP_WRITE;
-			ops[count].reg = reg;
-			ops[count].val = val;
-			count++;
-		} else if (line[0] == 'd' || line[0] == 'D') {
-			if (sscanf(line, "%*c %u", &delay_ms) != 1) {
-				dev_warn(dev, "%s: malformed delay line, skipping: %s\n",
-					 __func__, line);
-				continue;
+		if (pass == 1) {
+			if (capacity > INT_MAX) {
+				kfree(buf);
+				return -E2BIG;
 			}
 
-			ops[count].type = TAS58XX_CFG_OP_DELAY;
-			ops[count].delay_ms = delay_ms;
-			count++;
-		} else {
-			dev_warn(dev, "%s: unrecognized line, skipping: %s\n",
-				 __func__, line);
+			ops = devm_kcalloc(dev, max_t(size_t, capacity, 1),
+					    sizeof(*ops), GFP_KERNEL);
+			if (!ops) {
+				kfree(buf);
+				return -ENOMEM;
+			}
+			count = 0;
 		}
-	}
 
-	kfree(buf);
+		p = buf;
+		while ((line = strsep(&p, "\r\n")) != NULL) {
+			char *comment = strchr(line, '#');
+
+			if (comment)
+				*comment = '\0';
+			line = strim(line);
+			if (!*line)
+				continue;
+
+			tas58xx_parse_config_line(dev, i2c_addr, line,
+						  pass ? ops : NULL,
+						  pass ? capacity : 0,
+						  pass ? &count : &capacity,
+						  pass == 1);
+		}
+
+		kfree(buf);
+	}
 
 	*out_ops = ops;
 	*out_num_ops = count;
@@ -1396,17 +1494,14 @@ static int tas58xx_trigger(struct snd_pcm_substream *substream, int cmd,
 		 * This ensures both primary and secondary codecs get initialized
 		 * when playback starts, since TRIGGER events only reach primary.
 		 */
-		mutex_lock(&tas58xx_list_mutex);
-		list_for_each_entry(priv, &tas58xx_device_list, list) {
-			mutex_lock(&priv->lock);
-			if (!priv->is_powered && !work_pending(&priv->work)) {
-				dev_dbg(&priv->i2c->dev, "%s: scheduling work for device at 0x%02x\n",
-					__func__, priv->i2c->addr);
+		{
+			unsigned long flags;
+
+			spin_lock_irqsave(&tas58xx_list_lock, flags);
+			list_for_each_entry(priv, &tas58xx_device_list, list)
 				schedule_work(&priv->work);
-			}
-			mutex_unlock(&priv->lock);
+			spin_unlock_irqrestore(&tas58xx_list_lock, flags);
 		}
-		mutex_unlock(&tas58xx_list_mutex);
 		break;
 
 	case SNDRV_PCM_TRIGGER_STOP:
@@ -1431,6 +1526,10 @@ static void do_work(struct work_struct *work)
 		__func__);
 
 	mutex_lock(&tas58xx->lock);
+	if (tas58xx->is_powered) {
+		mutex_unlock(&tas58xx->lock);
+		return;
+	}
 	/* We mustn't issue any I2C transactions until the I2S
 	 * clock is stable. Furthermore, we must allow a 5ms
 	 * delay after the first set of register writes to
@@ -1860,11 +1959,7 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 	INIT_WORK(&tas58xx->work, do_work);
 	mutex_init(&tas58xx->lock);
 	
-	/* Add to device list for trigger synchronization */
-	mutex_lock(&tas58xx_list_mutex);
-	list_add_tail(&tas58xx->list, &tas58xx_device_list);
-	mutex_unlock(&tas58xx_list_mutex);
-
+	
 	/* Build component driver dynamically based on EQ mode */
 	struct snd_soc_component_driver *soc_codec_dev;
 	struct snd_kcontrol_new *controls;
@@ -2012,6 +2107,14 @@ static int tas58xx_i2c_probe(struct i2c_client *i2c)
 		return ret;
 	}
 
+	/* Add to device list for trigger synchronization */
+	{
+		unsigned long flags;
+
+		spin_lock_irqsave(&tas58xx_list_lock, flags);
+		list_add_tail(&tas58xx->list, &tas58xx_device_list);
+		spin_unlock_irqrestore(&tas58xx_list_lock, flags);
+	}
 	return 0;
 }
 
@@ -2024,9 +2127,13 @@ static void tas58xx_i2c_remove(struct i2c_client *i2c)
 		__func__, dev_name(dev));
 
 	/* Remove from device list */
-	mutex_lock(&tas58xx_list_mutex);
-	list_del(&tas58xx->list);
-	mutex_unlock(&tas58xx_list_mutex);
+	{
+		unsigned long flags;
+
+		spin_lock_irqsave(&tas58xx_list_lock, flags);
+		list_del(&tas58xx->list);
+		spin_unlock_irqrestore(&tas58xx_list_lock, flags);
+	}
 
 	cancel_work_sync(&tas58xx->work);
 	snd_soc_unregister_component(dev);
