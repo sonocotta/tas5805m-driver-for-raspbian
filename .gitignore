@@ -9,3 +9,4 @@ modules.order
 ..module-common.o.cmd
 .module-common.o
 ottercast
+__pycache__/

@@ -40,8 +40,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential ${{ matrix.header_pkg }}
 
-      - name: Check playback-trigger lock ordering
-        run: python3 tests/test_trigger_locking.py
+      - name: Host tests (parser, trigger locking)
+        run: python3 -m unittest discover -s tests -v
 
       - name: Locate installed generic kernel headers
         id: kernel

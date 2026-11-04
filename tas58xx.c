@@ -1290,19 +1290,6 @@ static void send_cfg_ops(struct regmap *rm,
 	}
 }
 
-/* Parse a PPC3 text register-dump export into a sequence of write/delay
- * operations. Each line is either:
- *   w <i2c_addr_hex> <reg_hex> <val_hex>  - a register write
- *   d <delay_ms>                          - a delay
- * with optional trailing "# comment" text and blank/comment-only lines
- * ignored. Since a single export may contain configuration for several
- * DACs sharing the file but sitting at different I2C addresses, write
- * lines whose address does not match `i2c_addr` are silently dropped.
- *
- * On success, *out_ops is allocated with devm_kzalloc() against `dev`
- * and *out_num_ops holds the number of matching operations (which may
- * be zero if the file contains nothing for this device's address).
- */
 /* Return the next non-empty whitespace-delimited token. */
 static char *tas58xx_cfg_next_token(char **cursor)
 {
