@@ -114,6 +114,12 @@
         i2creg_secondary = <&codec_secondary>,"reg:<>";
         pdn_gpio_primary = <&codec_primary>,"pdn-gpios:4";
         pdn_gpio_secondary = <&codec_secondary>,"pdn-gpios:5";
+        eq_mode_primary = <&codec_primary>,"ti,eq-mode:0";
+        eq_mode_secondary = <&codec_secondary>,"ti,eq-mode:0";
+        mixer_mode_primary = <&codec_primary>,"ti,mixer-mode:0";
+        mixer_mode_secondary = <&codec_secondary>,"ti,mixer-mode:0";
+        bridge_mode_primary = <&codec_primary>,"ti,bridge-mode?";
+        bridge_mode_secondary = <&codec_secondary>,"ti,bridge-mode?";
         fault_monitor_primary = <&codec_primary>,"ti,fault-monitor?";
         fault_monitor_secondary = <&codec_secondary>,"ti,fault-monitor?";
     };

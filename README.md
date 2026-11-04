@@ -50,7 +50,7 @@ this will compile the overlay file, put the compiled file under `/boot/overlays`
 
 ### Single DAC Configuration
 
-Next, add to `/boot/config.txt`
+Next, add to `/boot/firmware/config.txt` (`/boot/config.txt` on Raspberry Pi OS Bullseye and older)
 
 ```
 # Enable DAC
@@ -78,7 +78,7 @@ dtoverlay=tas58xx-dual,i2creg_primary=0x4c,i2creg_secondary=0x4d
 ```
 
 This configuration:
-- Primary DAC (0x2d/0x4c, GPIO4): Stereo speakers in normal mode with HF crossover (high-pass filter)
+- Primary DAC (0x2d/0x4c, GPIO4): Stereo speakers in normal mode with 15-band EQ (add `eq_mode_primary=3` for the HF crossover high-pass filter)
 - Secondary DAC (0x2e,0x4d, GPIO5): Subwoofer in bridge/PBTL mode with LF crossover (low-pass filter)
 - Both DACs: Hybrid modulation, 768kHz switching frequency
 
@@ -109,7 +109,7 @@ Bridge mode is also set in the device tree and do not get changed on the fly. Th
 
 ### Device Tree Override Examples
 
-Both device tree overlays support runtime parameter overrides via `/boot/config.txt`. This allows you to customize settings without editing the device tree source.
+Both device tree overlays support runtime parameter overrides via `/boot/firmware/config.txt`. This allows you to customize settings without editing the device tree source.
 
 #### Single DAC Override Examples
 
@@ -174,6 +174,8 @@ dtoverlay=tas58xx-dual,eq_mode_primary=1,eq_mode_secondary=1,bridge_mode_seconda
 - `i2creg_primary` / `i2creg_secondary` - I2C addresses (defaults: 0x2d, 0x2e)
 - `pdn_gpio_primary` / `pdn_gpio_secondary` - Power-down GPIO pins (defaults: 4, 5)
 - `eq_mode_primary` / `eq_mode_secondary` - EQ modes (defaults: 1, 2)
+- `mixer_mode_primary` / `mixer_mode_secondary` - Mixer: 0=Stereo, 1=Mono, 2=Left, 3=Right (defaults: 0, 1)
+- `bridge_mode_primary` / `bridge_mode_secondary` - Bridge/PBTL mode: 0=off, 1=on (defaults: 0, 1)
 - `firmware_primary` / `firmware_secondary` - DSP config file names (optional)
 - `fault_monitor_primary` / `fault_monitor_secondary` - Fault monitoring ALSA controls: 0=off, 1=on (default: 0 for both)
 
@@ -408,7 +410,7 @@ When a DSP config is successfully loaded for a device, that device's Equalizer, 
 
 ### Enabling the configuration
 
-Add the configuration name to your device tree overlay or `/boot/config.txt`:
+Add the configuration name to your device tree overlay or `/boot/firmware/config.txt`:
 
 ```
 dtoverlay=tas58xx,i2creg=0x2d,firmware=<config_name>
