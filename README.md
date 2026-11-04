@@ -50,7 +50,7 @@ this will compile the overlay file, put the compiled file under `/boot/overlays`
 
 ### Single DAC Configuration
 
-Next, add to `/boot/config.txt`
+Next, add to `/boot/firmware/config.txt` (`/boot/config.txt` on Raspberry Pi OS Bullseye and older)
 
 ```
 # Enable DAC
@@ -109,7 +109,7 @@ Bridge mode is also set in the device tree and do not get changed on the fly. Th
 
 ### Device Tree Override Examples
 
-Both device tree overlays support runtime parameter overrides via `/boot/config.txt`. This allows you to customize settings without editing the device tree source.
+Both device tree overlays support runtime parameter overrides via `/boot/firmware/config.txt`. This allows you to customize settings without editing the device tree source.
 
 #### Single DAC Override Examples
 
@@ -410,7 +410,7 @@ When a DSP config is successfully loaded for a device, that device's Equalizer, 
 
 ### Enabling the configuration
 
-Add the configuration name to your device tree overlay or `/boot/config.txt`:
+Add the configuration name to your device tree overlay or `/boot/firmware/config.txt`:
 
 ```
 dtoverlay=tas58xx,i2creg=0x2d,firmware=<config_name>
