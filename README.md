@@ -78,7 +78,7 @@ dtoverlay=tas58xx-dual,i2creg_primary=0x4c,i2creg_secondary=0x4d
 ```
 
 This configuration:
-- Primary DAC (0x2d/0x4c, GPIO4): Stereo speakers in normal mode with HF crossover (high-pass filter)
+- Primary DAC (0x2d/0x4c, GPIO4): Stereo speakers in normal mode with 15-band EQ (add `eq_mode_primary=3` for the HF crossover high-pass filter)
 - Secondary DAC (0x2e,0x4d, GPIO5): Subwoofer in bridge/PBTL mode with LF crossover (low-pass filter)
 - Both DACs: Hybrid modulation, 768kHz switching frequency
 
@@ -174,6 +174,8 @@ dtoverlay=tas58xx-dual,eq_mode_primary=1,eq_mode_secondary=1,bridge_mode_seconda
 - `i2creg_primary` / `i2creg_secondary` - I2C addresses (defaults: 0x2d, 0x2e)
 - `pdn_gpio_primary` / `pdn_gpio_secondary` - Power-down GPIO pins (defaults: 4, 5)
 - `eq_mode_primary` / `eq_mode_secondary` - EQ modes (defaults: 1, 2)
+- `mixer_mode_primary` / `mixer_mode_secondary` - Mixer: 0=Stereo, 1=Mono, 2=Left, 3=Right (defaults: 0, 1)
+- `bridge_mode_primary` / `bridge_mode_secondary` - Bridge/PBTL mode: 0=off, 1=on (defaults: 0, 1)
 - `firmware_primary` / `firmware_secondary` - DSP config file names (optional)
 - `fault_monitor_primary` / `fault_monitor_secondary` - Fault monitoring ALSA controls: 0=off, 1=on (default: 0 for both)
 
