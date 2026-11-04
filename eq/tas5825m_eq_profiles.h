@@ -2676,18 +2676,21 @@ static const reg_sequence_eq *tas5825m_crossover_lf_registers[] = {
     tas5825m_eq_registers_left_lf_150,  /* 10: 150 Hz */
 };
 
+/* Left bank, as for the LF and 15-band paths: with EQ gang enabled the
+ * left-bank biquads filter both channels and the right bank is not used.
+ */
 static const reg_sequence_eq *tas5825m_crossover_hf_registers[] = {
-    tas5825m_eq_registers_right_flat,    /* 0: OFF */
-    tas5825m_eq_registers_right_hf_60,   /* 1: 60 Hz */
-    tas5825m_eq_registers_right_hf_70,   /* 2: 70 Hz */
-    tas5825m_eq_registers_right_hf_80,   /* 3: 80 Hz */
-    tas5825m_eq_registers_right_hf_90,   /* 4: 90 Hz */
-    tas5825m_eq_registers_right_hf_100,  /* 5: 100 Hz */
-    tas5825m_eq_registers_right_hf_110,  /* 6: 110 Hz */
-    tas5825m_eq_registers_right_hf_120,  /* 7: 120 Hz */
-    tas5825m_eq_registers_right_hf_130,  /* 8: 130 Hz */
-    tas5825m_eq_registers_right_hf_140,  /* 9: 140 Hz */
-    tas5825m_eq_registers_right_hf_150,  /* 10: 150 Hz */
+    tas5825m_eq_registers_left_flat,    /* 0: OFF */
+    tas5825m_eq_registers_left_hf_60,   /* 1: 60 Hz */
+    tas5825m_eq_registers_left_hf_70,   /* 2: 70 Hz */
+    tas5825m_eq_registers_left_hf_80,   /* 3: 80 Hz */
+    tas5825m_eq_registers_left_hf_90,   /* 4: 90 Hz */
+    tas5825m_eq_registers_left_hf_100,  /* 5: 100 Hz */
+    tas5825m_eq_registers_left_hf_110,  /* 6: 110 Hz */
+    tas5825m_eq_registers_left_hf_120,  /* 7: 120 Hz */
+    tas5825m_eq_registers_left_hf_130,  /* 8: 130 Hz */
+    tas5825m_eq_registers_left_hf_140,  /* 9: 140 Hz */
+    tas5825m_eq_registers_left_hf_150,  /* 10: 150 Hz */
 };
 
 #ifdef __cplusplus
