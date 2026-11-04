@@ -23,6 +23,39 @@ Linux kernel has [tas5805m](https://github.com/torvalds/linux/blob/master/sound/
 
 Nuff said, it is a great device and deserves community attention and adoption.
 
+## Experimental TAS5825M PPC3 live DSP controls
+
+**WARNING: Raw DSP coefficients can damage speakers or the amplifier.** The
+`PPC3 ...` ALSA controls are an expert-only interface to signed 32-bit
+coefficient words, **not** user-facing Hz, dB, threshold, ratio, attack or
+release controls. The ALSA integer limits are representation limits, not
+acoustic safety limits. Do not write arbitrary numbers or use a saved state
+from a different PPC3 processing flow or speaker design. Begin testing with
+speakers disconnected or a suitably protected low-level test load.
+
+These controls appear only on a TAS5825M with a non-empty
+`ti,dsp-config-name = "drc3agl"` PPC3 text export using the expected PF3
+coefficient layout. They require the companion PPC3 parser improvements
+being reviewed separately from the live-control feature.
+
+A DSP configuration loads after I²S starts. PPC3 coefficient writes made by
+`alsactl restore` before first playback are now **cached for later replay**
+after the DSP image loads and before the amplifier is switched into PLAY
+mode; untouched coefficients retain their PPC3 defaults. When DSP is not
+running, reads return the cached value only for complete controls previously
+written through ALSA; otherwise they return `-EAGAIN`. During playback,
+reads access the hardware and accepted writes update the restore cache.
+
+To set the DRC, AGL and parametric EQ in dB, ms, ratios, Hz and Q instead of
+raw words, use [tools/tas5825m-dsp.py](docs/PPC3-LIVE-DSP-TOOL.md). It does
+the fixed-point maths in userspace with PPC3's formulas, refuses unstable
+filters and decodes the DSP's current settings.
+
+**Hardware validation is still required for this exact branch**, including
+an `alsactl store`/reboot/`alsactl restore` cycle, repeated playback starts
+and stops, and a failed-I²C-write recovery test. See
+[docs/PPC3-PF3-TESTING.md](docs/PPC3-PF3-TESTING.md) before trying live edits.
+
 ## Installation
 
 We're about to build kernel modules, so we need to install a few dependencies first (all commands going forward are running on the target host, ie Raspberry Pi) 
