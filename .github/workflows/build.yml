@@ -46,6 +46,9 @@ jobs:
       - name: Test PPC3 ALSA restore cache
         run: python3 tests/test_ppc3_restore.py
 
+      - name: Test the live DSP tool (DRC, AGL, EQ maths and commands)
+        run: python3 tests/test_dsp_tool.py
+
       - name: Locate installed generic kernel headers
         id: kernel
         run: |

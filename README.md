@@ -46,6 +46,11 @@ running, reads return the cached value only for complete controls previously
 written through ALSA; otherwise they return `-EAGAIN`. During playback,
 reads access the hardware and accepted writes update the restore cache.
 
+To set the DRC, AGL and parametric EQ in dB, ms, ratios, Hz and Q instead of
+raw words, use [tools/tas5825m-dsp.py](docs/PPC3-LIVE-DSP-TOOL.md). It does
+the fixed-point maths in userspace with PPC3's formulas, refuses unstable
+filters and decodes the DSP's current settings.
+
 **Hardware validation is still required for this exact branch**, including
 an `alsactl store`/reboot/`alsactl restore` cycle, repeated playback starts
 and stops, and a failed-I²C-write recovery test. See
